@@ -1,4 +1,6 @@
-from .models import UrlRecord
+# src/urlcheck_smith/data/__init__.py
+"""
+Data package for urlcheck-smith.
 
-__all__ = ["UrlRecord"]
-__version__ = "0.1.0"
+Contains YAML files for classification rules and presets.
+"""
