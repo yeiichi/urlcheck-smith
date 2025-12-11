@@ -1,0 +1,11 @@
+suffix_rules:
+  - suffix: ".eu"
+    category: regional
+  - suffix: ".gov.uk"
+    category: government
+  - suffix: ".gouv.fr"
+    category: government
+  - suffix: ".bund.de"
+    category: government
+
+default_category: private

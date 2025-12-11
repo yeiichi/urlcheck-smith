@@ -1,0 +1,9 @@
+suffix_rules:
+  - suffix: ".gov"
+    category: government
+  - suffix: ".edu"
+    category: education
+  - suffix: ".org"
+    category: non_profit
+
+default_category: private

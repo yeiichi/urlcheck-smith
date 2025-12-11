@@ -1,0 +1,55 @@
+# -----------------------------
+# Python & venv
+# -----------------------------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# C extensions
+build/
+dist/
+src/*.egg-info/
+*.egg-info/
+*.egg
+.eggs/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Coverage & test artifacts
+htmlcov/
+.coverage
+.coverage.*
+.cache/
+pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
+# MacOS
+.DS_Store
+
+# MyPy / Pyright / lint
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+
+# Environments
+.env
+.env.*
+*.env
+
+# Wheel build leftovers
+*.whl

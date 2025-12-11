@@ -1,0 +1,11 @@
+suffix_rules:
+  - suffix: ".go.jp"
+    category: government
+  - suffix: ".lg.jp"
+    category: local_gov
+  - suffix: ".ac.jp"
+    category: education
+  - suffix: ".or.jp"
+    category: organization
+
+default_category: private

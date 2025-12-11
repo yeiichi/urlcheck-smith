@@ -1,0 +1,16 @@
+# Simple domain suffix mapping for MVP.
+# Order matters – first match wins.
+suffix_rules:
+  - suffix: ".go.jp"
+    category: government
+  - suffix: ".gouv.fr"
+    category: government
+  - suffix: ".gov"
+    category: government
+  - suffix: ".ac.jp"
+    category: education
+  - suffix: ".edu"
+    category: education
+
+# Fallback when no rule matches
+default_category: private
