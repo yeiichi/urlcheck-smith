@@ -8,10 +8,11 @@ from typing import Iterable, List
 from .models import UrlRecord
 
 # Very simple HTTP(S) detector for MVP.
-URL_REGEX = re.compile(r"https?://[^\s<>'\"()\[\]]+")
+# Added ',' to the excluded characters to prevent capturing trailing CSV fields.
+URL_REGEX = re.compile(r"https?://[^\s<>'\"()\[\],]+")
 
 # Characters that often trail URLs in prose (sentences, lists, etc.)
-_TRAILING_PUNCTUATION = ".,);]'\""
+_TRAILING_PUNCTUATION = ".,);]'\"/"
 
 
 def extract_urls_from_text(text: str) -> List[UrlRecord]:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import logging
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from typing import List, Any
@@ -10,6 +11,8 @@ from .check import check_urls
 from .classify import SiteClassifier
 from .extract import extract_urls_from_paths
 from .models import UrlRecord
+
+logger = logging.getLogger(__name__)
 
 
 def build_parser() -> ArgumentParser:
@@ -62,6 +65,9 @@ def build_parser() -> ArgumentParser:
         type=Path,
         help="Optional YAML rules file for classifier (overrides built-in rules).",
     )
+    scan.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable verbose logging."
+    )
 
     # --- classify-url subcommand --------------------------------------------
     classify = sub.add_parser(
@@ -108,23 +114,29 @@ def build_parser() -> ArgumentParser:
 
 def run_scan(args: Namespace) -> int:
     paths = [Path(p) for p in args.paths]
+    logger.info(f"Extracting URLs from {len(paths)} path(s)...")
     records: List[UrlRecord] = extract_urls_from_paths(paths)
+    logger.info(f"Found {len(records)} unique URLs.")
 
+    logger.info("Classifying URLs...")
     classifier = SiteClassifier(rules_path=args.rules)
     records = classifier.classify(records)
 
     if not args.no_http:
+        logger.info(f"Running HTTP checks (timeout={args.timeout}s)...")
         records = check_urls(
             records,
             timeout=args.timeout,
             user_agent=args.user_agent,
         )
 
+    logger.info(f"Writing results to {args.output}...")
     if args.format == "csv":
         write_csv(args.output, records)
     else:
         write_jsonl(args.output, records)
 
+    logger.info("Done.")
     return 0
 
 
@@ -152,13 +164,16 @@ def run_classify_url(args: Namespace) -> int:
 
 
 def run_classify(args: Namespace) -> int:
+    logger.info(f"Reading URLs from {args.path}...")
     urls = [
         line.strip()
         for line in args.path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
     recs = [UrlRecord(url=u) for u in urls]
+    logger.info(f"Loaded {len(recs)} URLs.")
 
+    logger.info("Classifying...")
     clf = SiteClassifier(
         rules_path=args.rules,
         preset=args.preset,
@@ -172,11 +187,13 @@ def run_classify(args: Namespace) -> int:
             print(r.category)
         return 0
 
+    logger.info(f"Writing results to {args.output}...")
     if args.format == "csv":
         write_csv(args.output, recs)
     else:
         write_jsonl(args.output, recs)
 
+    logger.info("Done.")
     return 0
 
 
@@ -236,6 +253,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    log_level = logging.DEBUG if getattr(args, "verbose", False) else logging.INFO
+    logging.basicConfig(
+        level=log_level,
+        format="%(levelname)s: %(message)s",
+    )
+
     if args.command == "scan":
         return run_scan(args)
     if args.command == "classify-url":
@@ -245,7 +268,3 @@ def main(argv: list[str] | None = None) -> int:
 
     parser.print_help()
     return 1
-
-
-if __name__ == "__main__":  # pragma: no cover
-    raise SystemExit(main())
