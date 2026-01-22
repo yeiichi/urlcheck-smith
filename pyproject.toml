@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "urlcheck-smith"
 version = "0.2.0"
 description = "Minimal URL extraction / classification / HTTP check pipeline."
-readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [
