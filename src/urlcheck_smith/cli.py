@@ -189,6 +189,7 @@ def _record_to_dict(r: UrlRecord) -> dict[str, Any]:
         "redirected_url": r.redirected_url or "",
         "error": r.error or "",
         "human_check_suspected": bool(r.human_check_suspected),
+        "soft_404_detected": bool(r.soft_404_detected),
     }
     if getattr(r, "explain", None):
         d["explain"] = r.explain
@@ -206,6 +207,7 @@ def write_csv(path: Path, records: List[UrlRecord]) -> None:
         "redirected_url",
         "error",
         "human_check_suspected",
+        "soft_404_detected",
     ]
 
     with path.open("w", newline="", encoding="utf-8") as f:

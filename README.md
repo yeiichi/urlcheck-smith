@@ -9,14 +9,28 @@
 A compact, fast URL analysis pipeline:
 
 - Extract URLs from arbitrary text files  
-- Classify domains using suffix-based “site runner” rules (government, edu, private, etc.)  
-- Optional HTTP checks (status, redirect, CAPTCHA/human-check heuristic)  
-- Output results as CSV or JSONL  
-- Standalone URL classifier (`classify-url`)  
-- Batch classification mode (`classify`)  
-- Supports rule presets (Japan/EU/global), custom YAML rules, explain mode, quiet mode  
+- Classify domains using suffix-based “site runner” rules (government, edu, private, etc.)
+- Optional HTTP checks (status, redirect, CAPTCHA/human-check heuristic)
+- Output results as CSV or JSONL
+- Standalone URL classifier (`classify-url`)
+- Batch classification mode (`classify`)
+- Supports rule presets (Japan/EU/global), custom YAML rules, explain mode, quiet mode
+- **Classification**: Assigns categories (e.g., government, education) based on domain suffix rules.
+- **HTTP Verification**: Checks reachability and captures status codes.
+- **Soft 404 Detection**: Identifies pages that return a `200 OK` status but contain "Page Not Found" text.
+- **Human-Check Detection**: Flags URLs that likely lead to CAPTCHA or bot-detection screens.
 
 ---
+
+## Features in Detail
+
+### Soft 404 Detection
+Many websites are configured to return a standard `200 OK` status even when a page is missing, often displaying a custom "not found" message to users. `urlcheck-smith` detects this by scanning the first 2000 characters of the response for common markers like:
+- "page not found"
+- "error 404"
+- "the page you requested cannot be found"
+
+If a marker is found, the `soft_404_detected` field in the output is set to `True`, allowing you to filter out these "ghost" pages from your results.
 
 ## Installation (development)
 

@@ -7,6 +7,33 @@ import requests
 
 from .models import UrlRecord
 
+SOFT_404_MARKERS = [
+    # English
+    "page not found",
+    "404 -",
+    "404:",
+    "404!",
+    "error 404",
+    "the page you requested cannot be found",
+    "the page you are looking for might have been removed",
+    # Japanese
+    "ページが見つかりません",
+    "お探しのページ",
+    "ページが削除された",
+    # French
+    "page non trouvée",
+    "la page que vous recherchez",
+    # German
+    "seite nicht gefunden",
+    "die gewünschte seite wurde nicht gefunden",
+    # Spanish
+    "página no encontrada",
+    "la página que busca no existe",
+    # Italian
+    "pagina non trovata",
+    "la pagina richiesta non è disponibile",
+]
+
 
 def _guess_human_check(content_snippet: str) -> bool:
     """
@@ -21,6 +48,14 @@ def _guess_human_check(content_snippet: str) -> bool:
         "verify you are human",
     ]
     return any(k in lowered for k in keywords)
+
+
+def _is_soft_404(content_snippet: str) -> bool:
+    """
+    Check if the snippet contains typical 'not found' text despite a 200 OK status.
+    """
+    lowered = content_snippet.lower()
+    return any(marker in lowered for marker in SOFT_404_MARKERS)
 
 
 def check_urls(
@@ -55,6 +90,7 @@ def check_urls(
             final_url = resp.url
             snippet = resp.text[:2000] if isinstance(resp.text, str) else ""
             hc = _guess_human_check(snippet)
+            soft_404 = _is_soft_404(snippet) if status == 200 else False
 
             new_rec = dataclasses.replace(
                 rec,
@@ -62,6 +98,7 @@ def check_urls(
                 redirected_url=final_url,
                 error=None,
                 human_check_suspected=hc,
+                soft_404_detected=soft_404,
             )
         except Exception as exc:  # noqa: BLE001 (MVP)
             new_rec = dataclasses.replace(
@@ -70,6 +107,7 @@ def check_urls(
                 redirected_url=None,
                 error=str(exc),
                 human_check_suspected=False,
+                soft_404_detected=False,
             )
 
         output.append(new_rec)
