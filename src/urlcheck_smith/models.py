@@ -13,4 +13,5 @@ class UrlRecord:
     redirected_url: Optional[str] = None
     human_check_suspected: bool = False
     soft_404_detected: bool = False
+    trust_tier: str = "TIER_3_GENERAL"
     error: Optional[str] = None

@@ -42,3 +42,8 @@ def test_scan_jsonl_no_http(tmp_path: Path) -> None:
     # classification is present (category non-empty)
     categories = {obj["category"] for obj in objs}
     assert "" not in categories
+
+    # Verify trust_tier is present
+    trust_tiers = {obj["trust_tier"] for obj in objs}
+    assert "TIER_1_OFFICIAL" in trust_tiers
+    assert "TIER_3_GENERAL" in trust_tiers

@@ -153,12 +153,14 @@ def run_classify_url(args: Namespace) -> int:
             "url": rec.url,
             "base_url": rec.base_url,
             "category": rec.category,
+            "trust_tier": rec.trust_tier,
         }
         print(json.dumps(obj, ensure_ascii=False))
     else:
         print(f"url={rec.url}")
         print(f"base_url={rec.base_url}")
         print(f"category={rec.category}")
+        print(f"trust_tier={rec.trust_tier}")
 
     return 0
 
@@ -207,6 +209,7 @@ def _record_to_dict(r: UrlRecord) -> dict[str, Any]:
         "error": r.error or "",
         "human_check_suspected": bool(r.human_check_suspected),
         "soft_404_detected": bool(r.soft_404_detected),
+        "trust_tier": r.trust_tier or "TIER_3_GENERAL",
     }
     if getattr(r, "explain", None):
         d["explain"] = r.explain
@@ -225,6 +228,7 @@ def write_csv(path: Path, records: List[UrlRecord]) -> None:
         "error",
         "human_check_suspected",
         "soft_404_detected",
+        "trust_tier",
     ]
 
     with path.open("w", newline="", encoding="utf-8") as f:

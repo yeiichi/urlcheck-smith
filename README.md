@@ -1,5 +1,6 @@
 # urlcheck-smith
 
+[![GitHub](https://img.shields.io/badge/GitHub-yeiichi%2Furlcheck--smith-181717?logo=github)](https://github.com/yeiichi/urlcheck-smith)
 [![PyPI version](https://img.shields.io/pypi/v/urlcheck-smith.svg)](https://pypi.org/project/urlcheck-smith/)
 ![Python versions](https://img.shields.io/pypi/pyversions/urlcheck-smith.svg)
 ![Status](https://img.shields.io/badge/status-Alpha-orange.svg)
@@ -10,6 +11,7 @@ A compact, fast URL analysis pipeline:
 
 - Extract URLs from arbitrary text files  
 - Classify domains using suffix-based “site runner” rules (government, edu, private, etc.)
+- Trust Tier classification (Official, News, General)
 - Optional HTTP checks (status, redirect, CAPTCHA/human-check heuristic)
 - Output results as CSV or JSONL
 - Standalone URL classifier (`classify-url`)
@@ -18,6 +20,7 @@ A compact, fast URL analysis pipeline:
 - **Classification**: Assigns categories (e.g., government, education) based on domain suffix rules.
 - **HTTP Verification**: Checks reachability and captures status codes.
 - **Soft 404 Detection**: Identifies pages that return a `200 OK` status but contain "Page Not Found" text.
+- **Trust Tier Analysis**: Automatically categorizes URLs into `TIER_1_OFFICIAL`, `TIER_2_NEWS`, or `TIER_3_GENERAL` using `TrustManager`.
 - **Human-Check Detection**: Flags URLs that likely lead to CAPTCHA or bot-detection screens.
 
 ---
@@ -31,6 +34,14 @@ Many websites are configured to return a standard `200 OK` status even when a pa
 - "the page you requested cannot be found"
 
 If a marker is found, the `soft_404_detected` field in the output is set to `True`, allowing you to filter out these "ghost" pages from your results.
+
+### Trust Tier Classification
+To help prioritize analysis, `urlcheck-smith` assigns a trust tier to each URL:
+- **TIER_1_OFFICIAL**: Government (`.gov`, `.go.jp`, etc.), UN, and official EU domains.
+- **TIER_2_NEWS**: Major news organizations (Reuters, AP, BBC, etc.).
+- **TIER_3_GENERAL**: All other domains.
+
+This is available via the `trust_tier` field in CSV/JSONL outputs.
 
 ## Installation (development)
 
@@ -109,6 +120,7 @@ Output example:
   "url": "https://www.soumu.go.jp/",
   "base_url": "www.soumu.go.jp",
   "category": "government",
+  "trust_tier": "TIER_1_OFFICIAL",
   "explain": {
     "matched_suffix": ".go.jp",
     "category": "government"

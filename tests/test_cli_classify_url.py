@@ -19,3 +19,4 @@ def test_classify_url_json_default(capsys) -> None:
     assert data["base_url"] == "www.soumu.go.jp"
     # From built-in rules: .go.jp → government
     assert data["category"] == "government"
+    assert data["trust_tier"] == "TIER_1_OFFICIAL"
