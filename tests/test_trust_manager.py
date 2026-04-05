@@ -1,7 +1,7 @@
 # File: tests/test_trust_manager.py
 
 import pytest
-from src.urlcheck_smith.trust_manager import TrustManager
+from urlcheck_smith.core.trust_manager import TrustManager
 
 
 @pytest.fixture

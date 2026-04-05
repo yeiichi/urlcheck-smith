@@ -7,9 +7,9 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from typing import List, Any
 
-from .check import check_urls
-from .classify import SiteClassifier
-from .extract import extract_urls_from_paths
+from .core.check import check_urls
+from .core.classify import SiteClassifier
+from .core.extract import extract_urls_from_paths
 from .models import UrlRecord
 
 logger = logging.getLogger(__name__)

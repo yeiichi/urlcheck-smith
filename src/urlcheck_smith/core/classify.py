@@ -1,4 +1,4 @@
-# src/urlcheck_smith/classify.py
+# src/urlcheck_smith/core/classify.py
 from __future__ import annotations
 
 import dataclasses
@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 import yaml
 
-from .models import UrlRecord
+from ..models import UrlRecord
 from .trust_manager import TrustManager
 
 PRESETS = {

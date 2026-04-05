@@ -1,11 +1,11 @@
-# src/urlcheck_smith/extract.py
+# src/urlcheck_smith/core/extract.py
 from __future__ import annotations
 
 import re
 from pathlib import Path
 from typing import Iterable, List
 
-from .models import UrlRecord
+from ..models import UrlRecord
 
 # Very simple HTTP(S) detector for MVP.
 # Added ',' to the excluded characters to prevent capturing trailing CSV fields.

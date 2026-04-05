@@ -1,4 +1,4 @@
-from urlcheck_smith.classify import SiteClassifier
+from urlcheck_smith.core.classify import SiteClassifier
 from urlcheck_smith.models import UrlRecord
 
 

@@ -1,10 +1,10 @@
 from unittest.mock import Mock, patch
 
-from urlcheck_smith.check import check_urls
+from urlcheck_smith.core.check import check_urls
 from urlcheck_smith.models import UrlRecord
 
 
-@patch("urlcheck_smith.check.requests.get")
+@patch("urlcheck_smith.core.check.requests.get")
 def test_check_success(mock_get: Mock):
     mock_resp = Mock()
     mock_resp.status_code = 200

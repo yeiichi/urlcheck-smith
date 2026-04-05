@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock, patch
-from urlcheck_smith.check import check_urls, _is_soft_404
+from urlcheck_smith.core.check import check_urls, _is_soft_404
 from urlcheck_smith.models import UrlRecord
 
 def test_is_soft_404_logic():

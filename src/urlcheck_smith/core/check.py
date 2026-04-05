@@ -5,7 +5,7 @@ from typing import Iterable, List, Optional
 
 import requests
 
-from .models import UrlRecord
+from ..models import UrlRecord
 
 SOFT_404_MARKERS = [
     # English
