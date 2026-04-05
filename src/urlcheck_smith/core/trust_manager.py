@@ -1,7 +1,7 @@
 import re
 from urllib.parse import urlparse
 
-# --- GLOBAL PATTERNS ---
+# --- GLOBAL PATTERNS (Fallback) ---
 OFFICIAL_PATTERNS = [
     r"\.gov$",  # US/Global Gov
     r"\.gov\.[a-z]{2}$",  # Country-code Gov (uk, in, br)
@@ -15,29 +15,19 @@ OFFICIAL_PATTERNS = [
 NEWS_PATTERNS = [
     r"reuters\.com", r"apnews\.com", r"afp\.com",
     r"bbc\.(co\.uk|com)", r"nikkei\.com", r"dw\.com",
-    r"nytimes\.com", r"wsj\.com", r"theguardian\.com"
+    r"nytimes\.com", r"wsj\.com", r"theguardian\.com",
+    r"asahi\.com", r"yomiuri\.co\.jp"
 ]
 
 
 class OfficialAuditor:
     """
     Validates whether a given URL belongs to an official domain based on predefined patterns.
-
-    This class provides functionality to inspect and validate if a URL corresponds to
-    an official source by matching it against a set of predefined patterns defining
-    trusted domains.
-
-    Methods:
-        is_official(url: str) -> bool: Checks if a URL belongs to a predefined set of
-        official domains.
     """
     def is_official(self, url: str) -> bool:
         try:
-            # Step 1: Parse the URL to get ONLY the hostname
-            # This stops 'malicious.com/search?q=gov.uk' from matching
             parsed = urlparse(url.lower())
             hostname = parsed.netloc
-            # Step 2: Ensure we are matching the ACTUAL end of the domain
             return any(re.search(p, hostname) for p in OFFICIAL_PATTERNS)
         except Exception:
             return False
@@ -45,23 +35,57 @@ class OfficialAuditor:
 
 class NewsAuditor:
     def is_news(self, url: str) -> bool:
-        return any(re.search(p, url.lower()) for p in NEWS_PATTERNS)
+        try:
+            parsed = urlparse(url.lower())
+            hostname = parsed.netloc
+            return any(re.search(p, hostname) for p in NEWS_PATTERNS)
+        except Exception:
+            return False
 
 
 class TrustManager:
     """A General Purpose URL Auditor for urlcheck-smith integration."""
 
-    def __init__(self):
+    def __init__(self, override_rules=None, default_tier="TIER_3_GENERAL"):
         self.official_auditor = OfficialAuditor()
         self.news_auditor = NewsAuditor()
+        self.override_rules = override_rules or []
+        self.default_tier = default_tier
 
     def classify_url(self, url: str) -> str:
-        """Classifies a single URL into a trust tier."""
+        """Classifies a single URL into a trust tier using rules then fallbacks."""
+        parsed = urlparse(url.lower())
+        hostname = parsed.netloc
+
+        # Normalize hostname for domain matching
+        domain_only = hostname
+        if hostname.startswith("www."):
+            domain_only = hostname[4:]
+
+        # 1. Check override rules (from YAML)
+        for rule in self.override_rules:
+            match = False
+            if "domain" in rule:
+                target_domain = rule["domain"].lower()
+                if hostname == target_domain or domain_only == target_domain:
+                    match = True
+            elif "suffix" in rule:
+                if hostname.endswith(rule["suffix"].lower()):
+                    match = True
+            elif "regex" in rule:
+                if re.search(rule["regex"], hostname):
+                    match = True
+
+            if match and "trust_tier" in rule:
+                return rule["trust_tier"]
+
+        # 2. Fallback to hardcoded patterns if no override matched
         if self.official_auditor.is_official(url):
             return "TIER_1_OFFICIAL"
         if self.news_auditor.is_news(url):
-            return "TIER_2_NEWS"
-        return "TIER_3_GENERAL"
+            return "TIER_2_RELIABLE"
+
+        return self.default_tier
 
     def audit_list(self, url_list: list) -> dict:
         """Processes a list of raw URLs into a categorized report."""

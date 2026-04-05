@@ -173,18 +173,35 @@ urlcheck-smith classify urls.txt --explain -o out.jsonl
 
 ---
 
+### Rule Precedence & Discrepancies
+
+When multiple rule sources are used, they are prioritized as follows:
+1. **User rules** (`--rules`): Rules from these files are checked first. If multiple files are provided, the one specified last has the highest priority.
+2. **Base rules** (`--preset` or default): These are checked only if no user rule matches.
+
+The system uses a **First-Match-Wins** strategy. The first rule that matches the URL (by domain, suffix, or regex) determines the category and trust tier.
+
+---
+
 # Rule System
 
-## Custom rule file example
+## Custom rule file example (YAML)
+Rule files can specify `rules` (a list of matchers) and optional `default_category` / `default_trust_tier`.
 
 ```yaml
-suffix_rules:
-  - suffix: ".go.jp"
-    category: government
-  - suffix: ".example.com"
-    category: internal
+rules:
+  - domain: "special.example.com"
+    category: "internal"
+    trust_tier: "TIER_1_OFFICIAL"
+  - suffix: ".gov.uk"
+    category: "government"
+    trust_tier: "TIER_1_OFFICIAL"
+  - regex: ".*-news\\.com$"
+    category: "news"
+    trust_tier: "TIER_2_RELIABLE"
 
-default_category: private
+default_category: "private"
+default_trust_tier: "TIER_3_GENERAL"
 ```
 
 ## Built-in presets

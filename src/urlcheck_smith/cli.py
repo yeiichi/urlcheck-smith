@@ -63,7 +63,8 @@ def build_parser() -> ArgumentParser:
     scan.add_argument(
         "--rules",
         type=Path,
-        help="Optional YAML rules file for classifier (overrides built-in rules).",
+        action="append",
+        help="Optional YAML rules file for classifier (merges with built-in rules). Can be specified multiple times.",
     )
     scan.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose logging."
@@ -81,7 +82,8 @@ def build_parser() -> ArgumentParser:
     classify.add_argument(
         "--rules",
         type=Path,
-        help="Optional YAML rules file for classifier (overrides built-in rules).",
+        action="append",
+        help="Optional YAML rules file for classifier (merges with built-in rules). Can be specified multiple times.",
     )
     classify.add_argument(
         "--format",
@@ -102,7 +104,12 @@ def build_parser() -> ArgumentParser:
     )
     batch.add_argument("path", type=Path, help="File with one URL per line.")
     batch.add_argument("-o", "--output", type=Path, default=Path("classified.csv"))
-    batch.add_argument("--rules", type=Path, help="Custom YAML rules.")
+    batch.add_argument(
+        "--rules",
+        type=Path,
+        action="append",
+        help="Custom YAML rules. Merges with built-in rules. Can be specified multiple times.",
+    )
     batch.add_argument("--preset", choices=["japan", "eu", "global"])
     batch.add_argument("--format", choices=["csv", "jsonl"], default="csv")
     batch.add_argument("--explain", action="store_true")
@@ -119,7 +126,10 @@ def run_scan(args: Namespace) -> int:
     logger.info(f"Found {len(records)} unique URLs.")
 
     logger.info("Classifying URLs...")
-    classifier = SiteClassifier(rules_path=args.rules)
+    classifier = SiteClassifier(
+        rules_path=args.rules,
+        explain=args.verbose,
+    )
     records = classifier.classify(records)
 
     if not args.no_http:
@@ -144,7 +154,12 @@ def run_classify_url(args: Namespace) -> int:
     """
     Classify a single URL and print the result to stdout.
     """
-    classifier = SiteClassifier(rules_path=args.rules)
+    classifier = SiteClassifier(
+        rules_path=args.rules,
+        preset=args.preset,
+        explain=args.explain,
+        normalize_domain=args.normalize_domain,
+    )
     rec = UrlRecord(url=args.url)
     rec = classifier.classify([rec])[0]
 

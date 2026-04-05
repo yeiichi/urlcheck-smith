@@ -2,7 +2,7 @@ VENV ?= .venv
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 
-.PHONY: help venv install test clean
+.PHONY: help venv install test clean docs
 
 help: ## Show this help message
 	@echo "Usage: make [target]"
@@ -27,5 +27,9 @@ clean: ## Remove build artifacts and Python cache files
 	@echo "Cleaning up..."
 	@find . -type d -name "__pycache__" -not -path "*/.venv/*" -exec rm -rf {} +
 	@find . -type d -name ".pytest_cache" -not -path "*/.venv/*" -exec rm -rf {} +
-	@rm -rf dist/ build/ src/*.egg-info/ .coverage htmlcov/
+	@rm -rf dist/ build/ src/*.egg-info/ .coverage htmlcov/ docs/build/
 	@echo "Cleanup complete."
+
+docs: ## build sphinx documentation
+	$(PIP) install -r docs/requirements.txt
+	$(MAKE) -C docs html SPHINXBUILD=$(CURDIR)/$(VENV)/bin/sphinx-build

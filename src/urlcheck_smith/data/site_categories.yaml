@@ -1,16 +1,48 @@
-# Simple domain suffix mapping for MVP.
+# Sophisticated domain rules mapping.
+# Rules can be based on 'suffix' or 'regex' or 'domain'
+# Each rule can specify 'category' and 'trust_tier'
 # Order matters – first match wins.
-suffix_rules:
-  - suffix: ".go.jp"
-    category: government
-  - suffix: ".gouv.fr"
-    category: government
+rules:
+  # TIER_1: HIGHLY RELIABLE (GOVERNMENT/INTERNATIONAL)
   - suffix: ".gov"
     category: government
-  - suffix: ".ac.jp"
-    category: education
+    trust_tier: TIER_1_OFFICIAL
+  - suffix: ".go.jp"
+    category: government
+    trust_tier: TIER_1_OFFICIAL
+  - suffix: ".gouv.fr"
+    category: government
+    trust_tier: TIER_1_OFFICIAL
+  - suffix: ".europa.eu"
+    category: international
+    trust_tier: TIER_1_OFFICIAL
+  - suffix: ".un.org"
+    category: international
+    trust_tier: TIER_1_OFFICIAL
+
+  # TIER_2: RELIABLE (EDUCATION/NEWS)
   - suffix: ".edu"
     category: education
+    trust_tier: TIER_2_RELIABLE
+  - suffix: ".ac.jp"
+    category: education
+    trust_tier: TIER_2_RELIABLE
+  - domain: "reuters.com"
+    category: news
+    trust_tier: TIER_2_RELIABLE
+  - domain: "apnews.com"
+    category: news
+    trust_tier: TIER_2_RELIABLE
+  - domain: "bbc.com"
+    category: news
+    trust_tier: TIER_2_RELIABLE
+  - domain: "bbc.co.uk"
+    category: news
+    trust_tier: TIER_2_RELIABLE
+  - domain: "nikkei.com"
+    category: news
+    trust_tier: TIER_2_RELIABLE
 
 # Fallback when no rule matches
 default_category: private
+default_trust_tier: TIER_3_GENERAL

@@ -1,11 +1,19 @@
-suffix_rules:
+rules:
   - suffix: ".eu"
     category: regional
+    trust_tier: TIER_3_GENERAL
+  - suffix: ".europa.eu"
+    category: international
+    trust_tier: TIER_1_OFFICIAL
   - suffix: ".gov.uk"
     category: government
+    trust_tier: TIER_1_OFFICIAL
   - suffix: ".gouv.fr"
     category: government
+    trust_tier: TIER_1_OFFICIAL
   - suffix: ".bund.de"
     category: government
+    trust_tier: TIER_1_OFFICIAL
 
 default_category: private
+default_trust_tier: TIER_3_GENERAL
