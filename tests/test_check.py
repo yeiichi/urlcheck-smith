@@ -1,7 +1,6 @@
 from unittest.mock import Mock, patch
 
-from urlcheck_smith.core.check import check_urls
-from urlcheck_smith.models import UrlRecord
+from urlcheck_smith import UrlRecord, check_urls
 
 
 @patch("urlcheck_smith.core.check.requests.get")

@@ -1,4 +1,4 @@
-from urlcheck_smith.core.extract import extract_urls_from_text
+from urlcheck_smith import extract_urls_from_text
 
 
 def test_extract_basic():

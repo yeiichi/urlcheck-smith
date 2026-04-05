@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
-from urlcheck_smith.core.check import check_urls, _is_soft_404
-from urlcheck_smith.models import UrlRecord
+from urlcheck_smith import UrlRecord, check_urls
+from urlcheck_smith.core.check import _is_soft_404
 
 def test_is_soft_404_logic():
     """Test the internal helper with various snippets."""
