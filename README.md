@@ -6,6 +6,7 @@
 ![Status](https://img.shields.io/badge/status-Alpha-orange.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
+[![Documentation Status](https://readthedocs.org/projects/urlcheck-smith/badge/?version=latest)](https://urlcheck-smith.readthedocs.io/en/latest/?badge=latest)
 
 A compact, fast URL analysis pipeline:
 

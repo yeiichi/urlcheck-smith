@@ -22,6 +22,12 @@ dev = [
   "pytest>=9.0.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/yeiichi/urlcheck-smith"
+Repository = "https://github.com/yeiichi/urlcheck-smith"
+Documentation = "https://urlcheck-smith.readthedocs.io/"
+Changelog = "https://urlcheck-smith.readthedocs.io/en/latest/changelog.html"
+
 [project.scripts]
 urlcheck-smith = "urlcheck_smith.cli:main"
 
