@@ -179,12 +179,7 @@ def run_classify_url(args: Namespace) -> int:
 
 def run_classify(args: Namespace) -> int:
     logger.info(f"Reading URLs from {args.path}...")
-    urls = [
-        line.strip()
-        for line in args.path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
-    recs = [UrlRecord(url=u) for u in urls]
+    recs = extract_urls_from_paths([args.path])
     logger.info(f"Loaded {len(recs)} URLs.")
 
     logger.info("Classifying...")

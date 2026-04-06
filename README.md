@@ -146,7 +146,7 @@ urlcheck-smith classify-url https://policy.example.com/ --rules org_rules.yaml
 
 # 3. `classify` — batch classify (no HTTP check)
 
-Input file should contain one URL per line.
+Extracts and classifies URLs from input files.
 
 ### CSV output
 

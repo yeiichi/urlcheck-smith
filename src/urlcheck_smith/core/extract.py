@@ -3,55 +3,91 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable, List, Set, Iterator
+from urllib.parse import urlparse, urlunparse
 
+from urlextract import URLExtract
 from ..models import UrlRecord
 
-# Very simple HTTP(S) detector for MVP.
-# Added ',' to the excluded characters to prevent capturing trailing CSV fields.
-URL_REGEX = re.compile(r"https?://[^\s<>'\"()\[\],]+")
+# Initialize the extractor once. 
+# It handles TLD updates and complex character matching internally.
+_EXTRACTOR = URLExtract()
 
-# Characters that often trail URLs in prose (sentences, lists, etc.)
-_TRAILING_PUNCTUATION = ".,);]'\""
-
+def normalize_url(url: str) -> str:
+    """
+    Standardize the URL to prevent duplicate checks of the same resource.
+    """
+    try:
+        # urlextract might return URLs with trailing punctuation if not careful.
+        # We strip common trailing noise before parsing.
+        url = url.rstrip('.,);]')
+        
+        # urlextract might return URLs without schemes (e.g., 'google.com').
+        # urlparse needs a scheme to identify the netloc correctly.
+        temp_url = url if "://" in url else f"http://{url}"
+        parsed = urlparse(temp_url)
+        
+        netloc = parsed.netloc.lower()
+        if not netloc:
+            return url
+            
+        normalized = urlunparse((
+            parsed.scheme.lower() or "http",
+            netloc,
+            parsed.path,
+            parsed.params,
+            parsed.query,
+            ''  # Dropping fragments
+        ))
+        return normalized.rstrip('/')
+    except Exception:
+        return url
 
 def extract_urls_from_text(text: str) -> List[UrlRecord]:
     """
-    Extract URLs from arbitrary text and return deduplicated UrlRecord list.
+    Extract, clean, and deduplicate URLs from a block of text using urlextract.
     """
-    raw_urls = URL_REGEX.findall(text)
-    seen = set()
+    # urlextract handles trailing punctuation and balanced brackets automatically.
+    found = _EXTRACTOR.find_urls(text, only_unique=True)
+    
+    seen: Set[str] = set()
     records: List[UrlRecord] = []
 
-    for u in raw_urls:
-        # Strip punctuation that is very likely to be sentence/formatting noise.
-        cleaned = u.rstrip(_TRAILING_PUNCTUATION)
-        if not cleaned:
-            continue
-        if cleaned not in seen:
-            seen.add(cleaned)
-            records.append(UrlRecord(url=cleaned))
+    for raw in found:
+        normalized = normalize_url(raw)
+        if normalized not in seen:
+            seen.add(normalized)
+            records.append(UrlRecord(url=normalized))
 
     return records
 
-
-def extract_urls_from_file(path: Path) -> List[UrlRecord]:
+def stream_extract_from_file(path: Path) -> Iterator[UrlRecord]:
     """
-    Treat the file as plain text (CSV/JSON/etc. are OK for MVP).
+    Generator that yields URLs line-by-line to handle large files efficiently.
     """
-    text = path.read_text(encoding="utf-8", errors="ignore")
-    return extract_urls_from_text(text)
-
+    seen: Set[str] = set()
+    try:
+        with path.open('r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                # We use the internal extractor logic per line
+                for record in extract_urls_from_text(line):
+                    if record.url not in seen:
+                        seen.add(record.url)
+                        yield record
+    except (OSError, UnicodeDecodeError):
+        return
 
 def extract_urls_from_paths(paths: Iterable[Path]) -> List[UrlRecord]:
     """
-    Extract URLs from multiple files, returning a single deduped list.
+    Aggregates URLs from multiple paths using the streaming logic.
     """
     all_records: List[UrlRecord] = []
-    seen = set()
+    global_seen: Set[str] = set()
+
     for p in paths:
-        for rec in extract_urls_from_file(p):
-            if rec.url not in seen:
-                seen.add(rec.url)
-                all_records.append(rec)
+        for record in stream_extract_from_file(p):
+            if record.url not in global_seen:
+                global_seen.add(record.url)
+                all_records.append(record)
+                
     return all_records
