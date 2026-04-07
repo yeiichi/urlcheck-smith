@@ -4,11 +4,12 @@ import csv
 import json
 import logging
 from argparse import ArgumentParser, Namespace
+from datetime import datetime
 from pathlib import Path
-from typing import List, Any
+from typing import Any, List
 
 from . import UrlRecord, SiteClassifier, check_urls, extract_urls_from_paths
-from .core.update_yaml import enrich_domain, add_user_domain, remove_user_domain
+from .core.update_yaml import add_user_domain, enrich_domain, remove_user_domain
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +35,8 @@ def build_parser() -> ArgumentParser:
         "-o",
         "--output",
         type=Path,
-        default=Path("urlcheck_results.csv"),
-        help="Output file (default: urlcheck_results.csv)",
+        default=None,
+        help="Output file. If omitted, a timestamped filename is generated.",
     )
     scan.add_argument(
         "--format",
@@ -89,7 +90,6 @@ def build_parser() -> ArgumentParser:
         default="json",
         help="Output format: json (default) or text.",
     )
-
     classify.add_argument("--explain", action="store_true")
     classify.add_argument("--preset", choices=["japan", "eu", "global"])
     classify.add_argument("--quiet", action="store_true")
@@ -101,7 +101,7 @@ def build_parser() -> ArgumentParser:
         help="Classify URLs from a file (one URL per line). No HTTP check.",
     )
     batch.add_argument("path", type=Path, help="File with one URL per line.")
-    batch.add_argument("-o", "--output", type=Path, default=Path("classified.csv"))
+    batch.add_argument("-o", "--output", type=Path, default=None)
     batch.add_argument(
         "--rules",
         type=Path,
@@ -136,6 +136,11 @@ def build_parser() -> ArgumentParser:
     return parser
 
 
+def _timestamped_output(prefix: str, suffix: str) -> Path:
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return Path(f"{prefix}_{stamp}{suffix}")
+
+
 def run_scan(args: Namespace) -> int:
     paths = [Path(p) for p in args.paths]
     logger.info(f"Extracting URLs from {len(paths)} path(s)...")
@@ -157,11 +162,18 @@ def run_scan(args: Namespace) -> int:
             user_agent=args.user_agent,
         )
 
-    logger.info(f"Writing results to {args.output}...")
+    output = args.output
+    if output is None:
+        output = _timestamped_output(
+            "urlcheck_results",
+            ".csv" if args.format == "csv" else ".jsonl",
+        )
+
+    logger.info(f"Writing results to {output}...")
     if args.format == "csv":
-        write_csv(args.output, records)
+        write_csv(output, records)
     else:
-        write_jsonl(args.output, records)
+        write_jsonl(output, records)
 
     logger.info("Done.")
     return 0
@@ -214,11 +226,18 @@ def run_classify(args: Namespace) -> int:
             print(r.category)
         return 0
 
-    logger.info(f"Writing results to {args.output}...")
+    output = args.output
+    if output is None:
+        output = _timestamped_output(
+            "classified",
+            ".csv" if args.format == "csv" else ".jsonl",
+        )
+
+    logger.info(f"Writing results to {output}...")
     if args.format == "csv":
-        write_csv(args.output, recs)
+        write_csv(output, recs)
     else:
-        write_jsonl(args.output, recs)
+        write_jsonl(output, recs)
 
     logger.info("Done.")
     return 0
