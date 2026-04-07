@@ -22,7 +22,7 @@ try:
         LOCAL_DENYLIST = str(p)
 except Exception:
     LOCAL_DENYLIST = str(Path(__file__).parent.parent / "data" / "denylist.txt")
-GOOGLE_API_KEY = os.environ.get('CHERRY_API_KEY', None)
+GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', None)
 API_URL = "https://factchecktools.googleapis.com/v1alpha1/claims:search"
 
 # --- QUIET MODE TOGGLE ---
@@ -99,6 +99,12 @@ def clear_user_domains():
 # --- CORE LOGIC ---
 
 def check_google_fact_check(domain):
+    """
+    Scouts for known misinformation flags for a given domain using the Google Fact Check Tools API.
+    This function requires the 'GOOGLE_API_KEY' environment variable to be set.
+    If the API key is missing, it returns None, and the domain enrichment will fallback
+    to local shields and denylists.
+    """
     if not GOOGLE_API_KEY:
         return None
     params = {'query': f'site:{domain}', 'key': GOOGLE_API_KEY}

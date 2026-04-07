@@ -121,7 +121,10 @@ def build_parser() -> ArgumentParser:
     db_sub = db_parser.add_subparsers(dest="db_command", required=True)
 
     # db update
-    db_update = db_sub.add_parser("update", help="Enrich/Update a domain in the database.")
+    db_update = db_sub.add_parser(
+        "update",
+        help="Enrich/Update a domain in the database. Requires CHERRY_API_KEY environment variable.",
+    )
     db_update.add_argument("domain", help="Domain to enrich (e.g., example.com).")
 
     # db add
