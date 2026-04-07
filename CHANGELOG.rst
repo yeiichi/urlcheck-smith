@@ -3,6 +3,9 @@ Changelog
 
 0.5.0 (2026-04-07)
 ------------------
+- Updated minimum Python version requirement to 3.10+ (removing support for 3.8 and 3.9).
+- Modernized type hints (PEP 585 lowercase generics, PEP 604 union types) across the codebase.
+- Significant documentation overhaul in `docs/source` to better align with `README.md`.
 - Added UC Smith credibility database (`ucsmith_db.yaml`) for multi-tiered trust classification.
 - Integrated UC Smith database into `SiteClassifier` and `TrustManager`.
 - Removed legacy regex-based classification logic and hardcoded patterns.
@@ -17,6 +20,12 @@ Changelog
 - Implement layered rule loading (global, preset, user) in `SiteClassifier`.
 - Optimize classification with exact match lookups and longest-suffix matching.
 - Add streaming support for large files in the extraction engine to handle larger datasets efficiently.
+
+0.3.1 (2026-04-05)
+------------------
+- Package layout refactor for better organization.
+- Initial Sphinx documentation setup.
+- Updated version metadata and test adjustments for reorganized structure.
 
 0.3.0 (2026-04-05)
 ------------------

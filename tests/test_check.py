@@ -21,7 +21,7 @@ def test_check_success(mock_get: Mock):
 @patch("urlcheck_smith.core.check.requests.get")
 @patch("urlcheck_smith.core.check.get_default_user_agent")
 def test_check_urls_uses_default_user_agent(mock_default_ua, mock_get: Mock):
-    mock_default_ua.return_value = "UrlCheckSmith/0.3.1"
+    mock_default_ua.return_value = "UrlCheckSmith/0.5.0"
 
     mock_resp = Mock()
     mock_resp.status_code = 200
@@ -34,7 +34,7 @@ def test_check_urls_uses_default_user_agent(mock_default_ua, mock_get: Mock):
 
     assert out[0].http_status == 200
     mock_get.assert_called_once()
-    assert mock_get.call_args.kwargs["headers"]["User-Agent"] == "UrlCheckSmith/0.3.1"
+    assert mock_get.call_args.kwargs["headers"]["User-Agent"] == "UrlCheckSmith/0.5.0"
 
 
 @patch("urlcheck_smith.core.check.requests.get")
