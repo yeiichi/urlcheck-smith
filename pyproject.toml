@@ -4,11 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "urlcheck-smith"
-version = "0.5.0"
+version = "0.3.1"
 description = "Minimal URL extraction / classification / HTTP check pipeline."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["url", "check", "classification", "pipeline", "trust-tier", "soft-404"]
 authors = [
   { name = "Eiichi Yamamoto" }
 ]
@@ -18,7 +20,6 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
 ]
 dependencies = [
