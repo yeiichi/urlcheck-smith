@@ -6,6 +6,7 @@ from typing import Iterable, List, Optional
 import requests
 
 from ..models import UrlRecord
+from .user_agent import get_default_user_agent
 
 SOFT_404_MARKERS = [
     # English
@@ -33,6 +34,8 @@ SOFT_404_MARKERS = [
     "pagina non trovata",
     "la pagina richiesta non è disponibile",
 ]
+
+_DEFAULT_UA_PREFIX = "UrlCheckSmith"
 
 
 def _guess_human_check(content_snippet: str) -> bool:
@@ -65,16 +68,8 @@ def check_urls(
 ) -> List[UrlRecord]:
     """
     Perform a minimal HTTP GET check for each URL.
-
-    For MVP we:
-      - follow redirects
-      - capture http_status
-      - keep final URL
-      - grab a small body snippet to guess human-check/CAPTCHA-ish behavior
     """
-    headers = {}
-    if user_agent:
-        headers["User-Agent"] = user_agent
+    headers = {"User-Agent": user_agent or get_default_user_agent()}
 
     output: List[UrlRecord] = []
 
@@ -84,7 +79,7 @@ def check_urls(
                 rec.url,
                 timeout=timeout,
                 allow_redirects=True,
-                headers=headers or None,
+                headers=headers,
             )
             status = resp.status_code
             final_url = resp.url

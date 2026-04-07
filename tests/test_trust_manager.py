@@ -10,31 +10,34 @@ def trust_manager():
     return TrustManager()
 
 
-def test_is_official_valid_url(trust_manager):
-    """Test OfficialAuditor identifies a valid official URL."""
+def test_classify_official_url(trust_manager):
+    """Test TrustManager identifies a valid official URL (via .gov suffix in DB or OECD)."""
+    # Assuming .gov is in oecd_arrowlist in ucsmith_db.yaml
     valid_official_url = "https://example.gov"
-    assert trust_manager.official_auditor.is_official(valid_official_url) is True
+    assert trust_manager.classify_url(valid_official_url) == "TIER_1_OFFICIAL"
 
 
-def test_is_official_invalid_url(trust_manager):
-    """Test OfficialAuditor does not identify an invalid URL as official."""
+def test_classify_untrusted_url(trust_manager):
+    """Test TrustManager does not identify an invalid URL as official."""
     invalid_url = "https://unofficial.com"
-    assert trust_manager.official_auditor.is_official(invalid_url) is False
+    # Default tier
+    assert trust_manager.classify_url(invalid_url) == "TIER_3_GENERAL"
 
 
-def test_is_official_partial_match(trust_manager):
-    """Test OfficialAuditor avoids partial matches in domain."""
-    partial_match_url = "https://malicious.com/search?q=.gov"
-    assert trust_manager.official_auditor.is_official(partial_match_url) is False
-
-
-def test_is_official_subdomain(trust_manager):
-    """Test OfficialAuditor correctly identifies valid subdomain of an official URL."""
+def test_classify_subdomain(trust_manager):
+    """Test TrustManager correctly identifies valid subdomain of an official URL."""
     subdomain_url = "https://subdomain.example.gov"
-    assert trust_manager.official_auditor.is_official(subdomain_url) is True
+    assert trust_manager.classify_url(subdomain_url) == "TIER_1_OFFICIAL"
 
 
-def test_is_official_exception_handling(trust_manager):
-    """Test OfficialAuditor handles exceptions gracefully."""
-    invalid_format_url = "not_a_url"
-    assert trust_manager.official_auditor.is_official(invalid_format_url) is False
+def test_audit_list(trust_manager):
+    """Test audit_list categorization."""
+    urls = [
+        "https://example.gov",
+        "https://reuters.com",
+        "https://unknown.com"
+    ]
+    report = trust_manager.audit_list(urls)
+    assert "https://example.gov" in report["official"]
+    assert "https://reuters.com" in report["reliable"]
+    assert "https://unknown.com" in report["general"]

@@ -27,28 +27,11 @@ def test_sophisticated_classification():
     assert out[0].category == "international"
     assert out[0].trust_tier == "TIER_1_OFFICIAL"
 
-def test_preset_japan_classification():
-    classifier = SiteClassifier(preset="japan")
-    
-    # Nikkei should be news in Japan preset
-    recs = [UrlRecord(url="https://www.nikkei.com/")]
-    out = classifier.classify(recs)
-    assert out[0].category == "news"
-    assert out[0].trust_tier == "TIER_2_RELIABLE"
-
-    # Local gov
-    recs = [UrlRecord(url="https://www.city.yokohama.lg.jp/")]
-    out = classifier.classify(recs)
-    assert out[0].category == "local_gov"
-    assert out[0].trust_tier == "TIER_1_OFFICIAL"
-
 def test_fallback_patterns():
     classifier = SiteClassifier()
     
-    # No explicit YAML rule for nytimes.com in site_categories.yaml, 
-    # but it is in NEWS_PATTERNS in trust_manager.py
+    # nytimes.com is now in global_rules of ucsmith_db.yaml
     recs = [UrlRecord(url="https://www.nytimes.com/")]
     out = classifier.classify(recs)
     assert out[0].trust_tier == "TIER_2_RELIABLE"
-    # Category might be default if not in YAML
-    assert out[0].category == "private"
+    assert out[0].category == "news"

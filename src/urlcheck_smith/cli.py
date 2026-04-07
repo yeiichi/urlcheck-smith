@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List, Any
 
 from . import UrlRecord, SiteClassifier, check_urls, extract_urls_from_paths
+from .core.update_yaml import enrich_domain, add_user_domain, remove_user_domain
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ def build_parser() -> ArgumentParser:
         "--rules",
         type=Path,
         action="append",
-        help="Optional YAML rules file for classifier (merges with built-in rules). Can be specified multiple times.",
+        help="Optional YAML rules file for classifier (merges with database rules). Can be specified multiple times.",
     )
     scan.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose logging."
@@ -80,7 +81,7 @@ def build_parser() -> ArgumentParser:
         "--rules",
         type=Path,
         action="append",
-        help="Optional YAML rules file for classifier (merges with built-in rules). Can be specified multiple times.",
+        help="Optional YAML rules file for classifier (merges with database rules). Can be specified multiple times.",
     )
     classify.add_argument(
         "--format",
@@ -105,13 +106,32 @@ def build_parser() -> ArgumentParser:
         "--rules",
         type=Path,
         action="append",
-        help="Custom YAML rules. Merges with built-in rules. Can be specified multiple times.",
+        help="Custom YAML rules. Merges with database rules. Can be specified multiple times.",
     )
-    batch.add_argument("--preset", choices=["japan", "eu", "global"])
     batch.add_argument("--format", choices=["csv", "jsonl"], default="csv")
     batch.add_argument("--explain", action="store_true")
     batch.add_argument("--quiet", action="store_true")
     batch.add_argument("--normalize-domain", action="store_true")
+
+    # --- db subcommand ------------------------------------------------------
+    db_parser = sub.add_parser(
+        "db",
+        help="Manage the UC Smith credibility database (ucsmith_db.yaml).",
+    )
+    db_sub = db_parser.add_subparsers(dest="db_command", required=True)
+
+    # db update
+    db_update = db_sub.add_parser("update", help="Enrich/Update a domain in the database.")
+    db_update.add_argument("domain", help="Domain to enrich (e.g., example.com).")
+
+    # db add
+    db_add = db_sub.add_parser("add", help="Add a trusted domain to user_defined.")
+    db_add.add_argument("domain", help="Domain to add.")
+    db_add.add_argument("--category", default="General", help="Category for the domain.")
+
+    # db remove
+    db_remove = db_sub.add_parser("remove", help="Remove a domain from user_defined.")
+    db_remove.add_argument("domain", help="Domain to remove.")
 
     return parser
 
@@ -153,7 +173,6 @@ def run_classify_url(args: Namespace) -> int:
     """
     classifier = SiteClassifier(
         rules_path=args.rules,
-        preset=args.preset,
         explain=args.explain,
         normalize_domain=args.normalize_domain,
     )
@@ -185,7 +204,6 @@ def run_classify(args: Namespace) -> int:
     logger.info("Classifying...")
     clf = SiteClassifier(
         rules_path=args.rules,
-        preset=args.preset,
         explain=args.explain,
         normalize_domain=args.normalize_domain,
     )
@@ -203,6 +221,19 @@ def run_classify(args: Namespace) -> int:
         write_jsonl(args.output, recs)
 
     logger.info("Done.")
+    return 0
+
+
+def run_db(args: Namespace) -> int:
+    if args.db_command == "update":
+        logger.info(f"Enriching domain: {args.domain}")
+        enrich_domain(args.domain)
+    elif args.db_command == "add":
+        logger.info(f"Adding user domain: {args.domain} ({args.category})")
+        add_user_domain(args.domain, args.category)
+    elif args.db_command == "remove":
+        logger.info(f"Removing user domain: {args.domain}")
+        remove_user_domain(args.domain)
     return 0
 
 
@@ -276,6 +307,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_classify_url(args)
     if args.command == "classify":
         return run_classify(args)
+    if args.command == "db":
+        return run_db(args)
 
     parser.print_help()
     return 1
