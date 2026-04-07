@@ -36,32 +36,42 @@ The resulting ``results.csv`` will contain columns such as:
 * ``status_code``: The HTTP status (e.g., 200, 404).
 * ``category``: The site category (e.g., ``government``, ``education``, ``news``, ``private``).
 * ``trust_tier``: The reliability level (e.g., ``TIER_1_OFFICIAL``, ``TIER_2_RELIABLE``, ``TIER_3_GENERAL``).
+* ``soft_404_detected``: Whether a "Page Not Found" message was detected in a 200 OK response.
 
 **Why this is impressive**:
-Instead of manually clicking each link and guessing the site's nature, ``urlcheck-smith`` provides a structured, automated report in seconds. By combining **reachability** (HTTP check) with **reliability** (suffix/domain-based classification), you can immediately filter for high-quality, active references.
+Instead of manually clicking each link and guessing the site's nature, ``urlcheck-smith`` provides a structured, automated report in seconds. By combining **reachability** (HTTP check) with **reliability** (suffix/domain-based classification), and **Soft 404 detection**, you can immediately filter for high-quality, active, and valid references.
 
 Example Output (simplified)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. list-table::
-   :widths: 40 10 20 30
+   :widths: 35 10 20 25 10
    :header-rows: 1
 
    * - URL
      - Status
      - Category
      - Trust Tier
+     - Soft 404
    * - https://www.data.gov/
      - 200
      - government
      - TIER_1_OFFICIAL
+     - False
    * - https://www.bbc.co.uk/news
      - 200
      - news
      - TIER_2_RELIABLE
+     - False
    * - http://expired-link.com/old
      - 404
      - private
      - TIER_3_GENERAL
+     - False
+   * - https://example.com/missing
+     - 200
+     - private
+     - TIER_3_GENERAL
+     - True
 
 This allows researchers and data scientists to quickly validate their datasets and focus on the most trustworthy sources.

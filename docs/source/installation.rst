@@ -24,7 +24,7 @@ If you are developing locally:
 
 .. code-block:: bash
 
-   git clone https://github.com/yeiichi/urlcheck-smith
-   cd urlcheck-smith
+   python3 -m venv .venv
+   . .venv/bin/activate
    pip install -e .[dev]
    pytest

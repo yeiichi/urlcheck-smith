@@ -32,6 +32,15 @@ If you have a list of URLs and only want to classify them without performing HTT
 
    urlcheck-smith classify urls.txt -o classified.csv
 
+JSONL Output
+------------
+
+Both ``scan`` and ``classify`` support JSONL output:
+
+.. code-block:: bash
+
+   urlcheck-smith scan sample.txt --format jsonl -o urls.jsonl
+
 Rule Presets
 ------------
 

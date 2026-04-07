@@ -12,6 +12,13 @@ You can run tests using ``pytest`` or the provided ``Makefile``.
    # or
    make test
 
+Install for development
+-----------------------
+
+.. code-block:: bash
+
+   make install
+
 Building the docs locally
 -------------------------
 
