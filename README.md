@@ -183,7 +183,18 @@ The system uses a **Longest-Suffix-Match** strategy. More specific rules (e.g., 
 
 A Google API key is **only required** for domain enrichment via the `db update` command. All core features (scanning, classification, HTTP checks) work without it.
 
-- **Variable**: `GOOGLE_API_KEY`
+This package reads the API key from:
+
+    CSVSMITH_GOOGLE_API_KEY
+
+Set it as follows:
+
+    export CSVSMITH_GOOGLE_API_KEY="your-api-key"
+
+If your key is stored under another variable name, map it:
+
+    export CSVSMITH_GOOGLE_API_KEY="$YOUR_EXISTING_VAR"
+
 - **Service**: Google Fact Check Tools API
 - **Usage**: Used to scout for known misinformation flags to update domain credibility scores.
 

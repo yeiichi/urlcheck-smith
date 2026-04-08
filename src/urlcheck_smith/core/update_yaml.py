@@ -13,7 +13,14 @@ RESOURCE_DB_NAME = "ucsmith_db.yaml"
 RESOURCE_DENYLIST_NAME = "denylist.txt"
 DEFAULT_USER_DB_NAME = "usmith_db.yaml"
 
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", None)
+ENV_VAR = "CSVSMITH_GOOGLE_API_KEY"
+api_key = os.getenv(ENV_VAR)
+if not api_key:
+    logger = logging.getLogger(__name__)
+    logger.warning(
+        "%s is not set. Google Fact Check functionality will be disabled.",
+        ENV_VAR,
+    )
 API_URL = "https://factchecktools.googleapis.com/v1alpha1/claims:search"
 
 # --- QUIET MODE TOGGLE ---
@@ -231,9 +238,14 @@ def check_google_fact_check(domain):
         int | None: The count of negative flags found for the domain, or None if the
         API key is missing or an error occurs.
     """
-    if not GOOGLE_API_KEY:
+    if not api_key:
+        logger.warning(
+            "Skipping Google Fact Check lookup for %s because %s is not configured.",
+            domain,
+            ENV_VAR,
+        )
         return None
-    params = {"query": f"site:{domain}", "key": GOOGLE_API_KEY}
+    params = {"query": f"site:{domain}", "key": api_key}
     try:
         response = requests.get(API_URL, params=params)
         data = response.json()
