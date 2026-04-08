@@ -8,21 +8,12 @@ import requests
 import yaml
 
 # --- CONFIGURATION ---
-# Use importlib.resources to find files relative to the package
-try:
-    with resources.path("urlcheck_smith.data", "ucsmith_db.yaml") as p:
-        YAML_FILE = str(p)
-except Exception:
-    # Fallback to local file if path lookup fails (e.g. not installed)
-    YAML_FILE = str(Path(__file__).parent.parent / "data" / "ucsmith_db.yaml")
+PACKAGE = "urlcheck_smith.resources"
+RESOURCE_DB_NAME = "ucsmith_db.yaml"
+RESOURCE_DENYLIST_NAME = "denylist.txt"
+DEFAULT_USER_DB_NAME = "usmith_db.yaml"
 
-# Denylist should live next to the packaged data file, with a safe fallback.
-try:
-    with resources.path("urlcheck_smith.data", "denylist.txt") as p:
-        LOCAL_DENYLIST = str(p)
-except Exception:
-    LOCAL_DENYLIST = str(Path(__file__).parent.parent / "data" / "denylist.txt")
-GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', None)
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", None)
 API_URL = "https://factchecktools.googleapis.com/v1alpha1/claims:search"
 
 # --- QUIET MODE TOGGLE ---
@@ -30,46 +21,84 @@ QUIET_MODE = False
 
 # --- LOGGING SETUP ---
 LOG_LEVEL = logging.WARNING if QUIET_MODE else logging.INFO
-logging.basicConfig(level=LOG_LEVEL, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
-def load_db():
-    if not os.path.exists(YAML_FILE):
+def _resource_path(resource_name: str) -> Path:
+    return Path(resources.files(PACKAGE).joinpath(resource_name))
+
+
+def _baseline_db_path() -> Path:
+    return _resource_path(RESOURCE_DB_NAME)
+
+
+def _cwd_db_path() -> Path:
+    return Path.cwd() / DEFAULT_USER_DB_NAME
+
+
+def load_db(db_path: str | Path | None = None):
+    """
+    Load a YAML database.
+
+    Resolution order:
+    1. explicit db_path
+    2. ./usmith_db.yaml in the current working directory
+    3. packaged baseline resource
+    """
+    if db_path is None:
+        candidate = _cwd_db_path()
+        if candidate.exists():
+            db_path = candidate
+        else:
+            db_path = _baseline_db_path()
+
+    db_path = Path(db_path)
+    if not db_path.exists():
         return {"metadata": {}, "user_defined": [], "global_rules": [], "discovered_cache": []}
-    with open(YAML_FILE, 'r', encoding='utf-8') as f:
+
+    with db_path.open("r", encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
-        # Ensure consistency with renamed keys
-        for key in ['user_defined', 'global_rules', 'discovered_cache']:
+        for key in ["user_defined", "global_rules", "discovered_cache"]:
             if key not in data or data[key] is None:
                 data[key] = []
         return data
 
 
-def save_db(data):
-    with open(YAML_FILE, 'w', encoding='utf-8') as f:
+def save_db(data, db_path: str | Path | None = None):
+    """
+    Save a YAML database.
+
+    Important:
+    - Never writes to packaged resources by default.
+    - Writes to the user-writable database in the current working directory unless
+      an explicit path is provided.
+    """
+    target = Path(db_path) if db_path is not None else _cwd_db_path()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("w", encoding="utf-8") as f:
         yaml.dump(data, f, sort_keys=False, default_flow_style=False, allow_unicode=True)
 
 
 # --- EDITOR FUNCTIONS ---
 
 def add_user_domain(name, category="General"):
-    """Adds a new domain to the user_defined arrowlist."""
+    """Adds a new domain to the user_defined list."""
     db = load_db()
-    if any(d['name'] == name for d in db['user_defined']):
+    if any(d["name"] == name for d in db["user_defined"]):
         logger.warning(f"Editor: {name} already exists in user_defined.")
         return
-    db['user_defined'].append({"name": name, "category": category})
+    db["user_defined"].append({"name": name, "category": category})
     save_db(db)
     logger.info(f"Editor: Added {name} ({category}) to user_defined.")
 
 
 def remove_user_domain(name):
-    """Removes a domain from the user_defined arrowlist."""
+    """Removes a domain from the user_defined list."""
     db = load_db()
-    original_count = len(db['user_defined'])
-    db['user_defined'] = [d for d in db['user_defined'] if d['name'] != name]
-    if len(db['user_defined']) < original_count:
+    original_count = len(db["user_defined"])
+    db["user_defined"] = [d for d in db["user_defined"] if d["name"] != name]
+    if len(db["user_defined"]) < original_count:
         save_db(db)
         logger.info(f"Editor: Removed {name} from user_defined.")
     else:
@@ -79,9 +108,9 @@ def remove_user_domain(name):
 def modify_user_category(name, new_category):
     """Updates the category for an existing user_defined domain."""
     db = load_db()
-    for entry in db['user_defined']:
-        if entry['name'] == name:
-            entry['category'] = new_category
+    for entry in db["user_defined"]:
+        if entry["name"] == name:
+            entry["category"] = new_category
             save_db(db)
             logger.info(f"Editor: Updated {name} category to {new_category}.")
             return
@@ -89,9 +118,9 @@ def modify_user_category(name, new_category):
 
 
 def clear_user_domains():
-    """Wipes all entries from the user_defined arrowlist."""
+    """Wipes all entries from the user_defined list."""
     db = load_db()
-    db['user_defined'] = []
+    db["user_defined"] = []
     save_db(db)
     logger.info("Editor: Cleared all user_defined entries.")
 
@@ -101,23 +130,20 @@ def clear_user_domains():
 def check_google_fact_check(domain):
     """
     Scouts for known misinformation flags for a given domain using the Google Fact Check Tools API.
-    This function requires the 'GOOGLE_API_KEY' environment variable to be set.
-    If the API key is missing, it returns None, and the domain enrichment will fallback
-    to local shields and denylists.
     """
     if not GOOGLE_API_KEY:
         return None
-    params = {'query': f'site:{domain}', 'key': GOOGLE_API_KEY}
+    params = {"query": f"site:{domain}", "key": GOOGLE_API_KEY}
     try:
         response = requests.get(API_URL, params=params)
         data = response.json()
-        claims = data.get('claims', [])
+        claims = data.get("claims", [])
         negative_flags = 0
-        neg_terms = {'false', 'misleading', 'incorrect', 'fake', 'pants on fire', 'distorted', 'conspiracy'}
+        neg_terms = {"false", "misleading", "incorrect", "fake", "pants on fire", "distorted", "conspiracy"}
         for claim in claims:
-            reviews = claim.get('claimReview', [])
+            reviews = claim.get("claimReview", [])
             if reviews:
-                rating = reviews[0].get('textualRating', '').lower()
+                rating = reviews[0].get("textualRating", "").lower()
                 if any(term in rating for term in neg_terms):
                     negative_flags += 1
         return negative_flags
@@ -131,21 +157,22 @@ def enrich_domain(domain):
     domain = domain.lower().strip()
 
     # 1. SHIELD (User Defined)
-    for entry in db['user_defined']:
-        if entry.get('name') == domain:
+    for entry in db["user_defined"]:
+        if entry.get("name") == domain:
             logger.info(f"SHIELD HIT (User Defined): {domain} verified.")
             return
 
     # 2. SHIELD (Global Rules)
-    for entry in db.get('global_rules', []):
-        name = entry.get('name')
+    for entry in db.get("global_rules", []):
+        name = entry.get("name")
         if name and (domain == name or domain.endswith(f".{name}")):
             logger.info(f"SHIELD HIT (Global Rule): {domain} verified by '{name}'")
             return
 
     # 3. SECONDARY SCOUT (Denylist)
-    if os.path.exists(LOCAL_DENYLIST):
-        with open(LOCAL_DENYLIST, 'r') as f:
+    denylist_path = _resource_path(RESOURCE_DENYLIST_NAME)
+    if denylist_path.exists():
+        with denylist_path.open("r", encoding="utf-8") as f:
             if domain in {line.strip().lower() for line in f if line.strip()}:
                 logger.warning(f"DENYLIST HIT: {domain} found in local denylist.")
                 return _update_cache(db, domain, 99, 0.0)
@@ -168,13 +195,13 @@ def enrich_domain(domain):
 
 def _update_cache(db, domain, flag_count, score):
     new_entry = {
-        'name': domain,
-        'flags_found': flag_count,
-        'credibility_score': score,
-        'last_check': datetime.now().strftime('%Y-%m-%d')
+        "name": domain,
+        "flags_found": flag_count,
+        "credibility_score": score,
+        "last_check": datetime.now().strftime("%Y-%m-%d"),
     }
-    cache = db['discovered_cache']
-    match_index = next((i for i, x in enumerate(cache) if x['name'] == domain), None)
+    cache = db["discovered_cache"]
+    match_index = next((i for i, x in enumerate(cache) if x["name"] == domain), None)
 
     if match_index is not None:
         cache[match_index] = new_entry

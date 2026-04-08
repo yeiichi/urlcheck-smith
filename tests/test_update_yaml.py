@@ -10,21 +10,28 @@ def update_yaml_module(tmp_path):
     module = importlib.import_module("urlcheck_smith.core.update_yaml")
     
     # Save original values
-    orig_yaml = module.YAML_FILE
-    orig_deny = module.LOCAL_DENYLIST
+    orig_db_name = module.RESOURCE_DB_NAME
+    orig_deny_name = module.RESOURCE_DENYLIST_NAME
     orig_key = module.GOOGLE_API_KEY
     
     module = importlib.reload(module)
 
-    module.YAML_FILE = str(tmp_path / "ucsmith_db.yaml")
-    module.LOCAL_DENYLIST = str(tmp_path / "denylist.txt")
+    # We can't easily override the packaged resource paths without mocking _resource_path
+    # but for tests, we want to point to tmp_path.
+    # Let's mock _baseline_db_path and _cwd_db_path to use tmp_path.
+    module.RESOURCE_DB_NAME = "test_db.yaml"
+    module.RESOURCE_DENYLIST_NAME = "test_denylist.txt"
     module.GOOGLE_API_KEY = "test-api-key"
+    
+    # Patch the path helpers to return tmp_path based paths
+    module._baseline_db_path = lambda: tmp_path / "baseline_db.yaml"
+    module._cwd_db_path = lambda: tmp_path / "usmith_db.yaml"
     
     yield module
     
     # Restore original values
-    module.YAML_FILE = orig_yaml
-    module.LOCAL_DENYLIST = orig_deny
+    module.RESOURCE_DB_NAME = orig_db_name
+    module.RESOURCE_DENYLIST_NAME = orig_deny_name
     module.GOOGLE_API_KEY = orig_key
 
 
@@ -265,7 +272,9 @@ def test_enrich_domain_denylist_updates_cache(update_yaml_module, monkeypatch, t
     """Test that denylisted domains are cached with a high flag count."""
     denylist = tmp_path / "denylist.txt"
     denylist.write_text("bad.example\n", encoding="utf-8")
-    update_yaml_module.LOCAL_DENYLIST = str(denylist)
+    
+    # Mock _resource_path to return our test denylist
+    monkeypatch.setattr(update_yaml_module, "_resource_path", lambda name: denylist)
 
     db = {
         "metadata": {},

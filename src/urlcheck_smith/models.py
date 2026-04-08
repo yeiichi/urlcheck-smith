@@ -15,3 +15,4 @@ class UrlRecord:
     soft_404_detected: bool = False
     trust_tier: str = "TIER_3_GENERAL"
     error: Optional[str] = None
+    explain: Optional[str] = None

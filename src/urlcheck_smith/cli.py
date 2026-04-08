@@ -5,6 +5,7 @@ import json
 import logging
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
+from importlib import resources
 from pathlib import Path
 from typing import Any, List
 
@@ -13,11 +14,14 @@ from .core.update_yaml import add_user_domain, enrich_domain, remove_user_domain
 
 logger = logging.getLogger(__name__)
 
+PACKAGE_RESOURCE_DB = "ucsmith_db.yaml"
+USER_DB_NAME = "usmith_db.yaml"
+
 
 def build_parser() -> ArgumentParser:
     parser = ArgumentParser(
         prog="urlcheck-smith",
-        description="Minimal URL extraction / classification / HTTP check pipeline.",
+        description="Battery-included URL extraction / classification / HTTP check pipeline.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -116,25 +120,39 @@ def build_parser() -> ArgumentParser:
     # --- db subcommand ------------------------------------------------------
     db_parser = sub.add_parser(
         "db",
-        help="Manage the UC Smith credibility database (ucsmith_db.yaml).",
+        help="Manage the UC Smith credibility database (usmith_db.yaml).",
     )
     db_sub = db_parser.add_subparsers(dest="db_command", required=True)
 
-    # db update
     db_update = db_sub.add_parser(
         "update",
-        help="Enrich/Update a domain in the database. Requires CHERRY_API_KEY environment variable.",
+        help="Enrich/Update a domain in the database.",
     )
     db_update.add_argument("domain", help="Domain to enrich (e.g., example.com).")
 
-    # db add
     db_add = db_sub.add_parser("add", help="Add a trusted domain to user_defined.")
     db_add.add_argument("domain", help="Domain to add.")
     db_add.add_argument("--category", default="General", help="Category for the domain.")
 
-    # db remove
     db_remove = db_sub.add_parser("remove", help="Remove a domain from user_defined.")
     db_remove.add_argument("domain", help="Domain to remove.")
+
+    # --- init subcommand ----------------------------------------------------
+    init = sub.add_parser(
+        "init",
+        help="Create a local writable usmith_db.yaml from the packaged baseline.",
+    )
+    init.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite an existing local database file.",
+    )
+    init.add_argument(
+        "--target",
+        type=Path,
+        default=Path.cwd() / USER_DB_NAME,
+        help="Target path for the initialized database (default: ./usmith_db.yaml).",
+    )
 
     return parser
 
@@ -144,7 +162,21 @@ def _timestamped_output(prefix: str, suffix: str) -> Path:
     return Path(f"{prefix}_{stamp}{suffix}")
 
 
-def run_scan(args: Namespace) -> int:
+def _init_local_db(target: Path, force: bool = False) -> int:
+    if target.exists() and not force:
+        logger.warning(f"Database already exists: {target}")
+        return 1
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    resource_db = resources.files("urlcheck_smith.resources").joinpath(PACKAGE_RESOURCE_DB)
+    target.write_text(resource_db.read_text(encoding="utf-8"), encoding="utf-8")
+
+    logger.info(f"Initialized local database at {target}")
+    return 0
+
+
+def run_check(args: Namespace) -> int:
     paths = [Path(p) for p in args.paths]
     logger.info(f"Extracting URLs from {len(paths)} path(s)...")
     records: List[UrlRecord] = extract_urls_from_paths(paths)
@@ -201,12 +233,16 @@ def run_classify_url(args: Namespace) -> int:
             "category": rec.category,
             "trust_tier": rec.trust_tier,
         }
+        if rec.explain:
+            obj["explain"] = rec.explain
         print(json.dumps(obj, ensure_ascii=False))
     else:
         print(f"url={rec.url}")
         print(f"base_url={rec.base_url}")
         print(f"category={rec.category}")
         print(f"trust_tier={rec.trust_tier}")
+        if rec.explain:
+            print(f"explain={rec.explain}")
 
     return 0
 
@@ -259,6 +295,10 @@ def run_db(args: Namespace) -> int:
     return 0
 
 
+def run_init(args: Namespace) -> int:
+    return _init_local_db(args.target, force=args.force)
+
+
 def _record_to_dict(r: UrlRecord) -> dict[str, Any]:
     d: dict[str, Any] = {
         "url": r.url,
@@ -302,9 +342,6 @@ def write_csv(path: Path, records: List[UrlRecord]) -> None:
 
 
 def write_jsonl(path: Path, records: List[UrlRecord]) -> None:
-    """
-    Write line-delimited JSON (JSONL), one record per line.
-    """
     path.parent.mkdir(parents=True, exist_ok=True)
 
     with path.open("w", encoding="utf-8") as f:
@@ -324,13 +361,15 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     if args.command == "scan":
-        return run_scan(args)
+        return run_check(args)
     if args.command == "classify-url":
         return run_classify_url(args)
     if args.command == "classify":
         return run_classify(args)
     if args.command == "db":
         return run_db(args)
+    if args.command == "init":
+        return run_init(args)
 
     parser.print_help()
     return 1
