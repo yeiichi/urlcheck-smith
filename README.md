@@ -185,15 +185,15 @@ A Google API key is **only required** for domain enrichment via the `db update` 
 
 This package reads the API key from:
 
-    CSVSMITH_GOOGLE_API_KEY
+    UCSMITH_GOOGLE_API_KEY
 
 Set it as follows:
 
-    export CSVSMITH_GOOGLE_API_KEY="your-api-key"
+    export UCSMITH_GOOGLE_API_KEY="your-api-key"
 
 If your key is stored under another variable name, map it:
 
-    export CSVSMITH_GOOGLE_API_KEY="$YOUR_EXISTING_VAR"
+    export UCSMITH_GOOGLE_API_KEY="$YOUR_EXISTING_VAR"
 
 - **Service**: Google Fact Check Tools API
 - **Usage**: Used to scout for known misinformation flags to update domain credibility scores.

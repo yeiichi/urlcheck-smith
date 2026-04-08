@@ -13,7 +13,7 @@ RESOURCE_DB_NAME = "ucsmith_db.yaml"
 RESOURCE_DENYLIST_NAME = "denylist.txt"
 DEFAULT_USER_DB_NAME = "usmith_db.yaml"
 
-ENV_VAR = "CSVSMITH_GOOGLE_API_KEY"
+ENV_VAR = "UCSMITH_GOOGLE_API_KEY"
 api_key = os.getenv(ENV_VAR)
 if not api_key:
     logger = logging.getLogger(__name__)
