@@ -214,6 +214,11 @@ def build_parser() -> ArgumentParser:
         help="Enrich/Update a domain in the database.",
     )
     db_update.add_argument("domain", help="Domain to enrich (e.g., example.com).")
+    db_update.add_argument(
+        "--no-api",
+        action="store_true",
+        help="Disable Google Fact Check API usage even when the API key is available.",
+    )
 
     db_add = db_sub.add_parser("add", help="Add a trusted domain to user_defined.")
     db_add.add_argument("domain", help="Domain to add.")
@@ -452,23 +457,10 @@ def run_db(args: Namespace) -> int:
     """
     Executes database-related commands such as updating, adding, or removing user domains
     based on the provided arguments.
-
-    Args:
-        args (Namespace): A namespace object containing the parsed command-line arguments
-            with the following attributes:
-            - db_command (str): Specifies the database operation to perform. Can be 'update',
-              'add', or 'remove'.
-            - domain (str): The target domain name for the database operation.
-            - category (str, optional): The category associated with the domain. Required
-              if the `db_command` is 'add'.
-
-    Returns:
-        int: An integer status code indicating the result of the operation. Returns 0 on
-            successful execution.
     """
     if args.db_command == "update":
         logger.info(f"Enriching domain: {args.domain}")
-        enrich_domain(args.domain)
+        enrich_domain(args.domain, use_api=not args.no_api)
     elif args.db_command == "add":
         logger.info(f"Adding user domain: {args.domain} ({args.category})")
         add_user_domain(args.domain, args.category)

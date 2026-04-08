@@ -264,7 +264,7 @@ def check_google_fact_check(domain):
         return None
 
 
-def enrich_domain(domain):
+def enrich_domain(domain, use_api: bool = True):
     """
     Process and analyze a given domain to determine its status based on various checks.
 
@@ -276,6 +276,7 @@ def enrich_domain(domain):
         domain (str): The domain name to be analyzed and verified. The domain should be
             provided as a string and will be sanitized (lowercased and stripped of
             unnecessary whitespace) before processing.
+        use_api (bool): Whether to use the Google Fact Check API when available.
 
     Returns:
         dict: Updated cache data for the domain, including verification status, flag
@@ -308,8 +309,16 @@ def enrich_domain(domain):
                 return _update_cache(db, domain, 99, 0.0)
 
     # 4. PRIMARY SCOUT (API)
-    logger.info(f"SCOUTING: Querying API for {domain}...")
-    flag_count = check_google_fact_check(domain)
+    if use_api and api_key:
+        logger.info(f"SCOUTING: Querying API for {domain}...")
+        flag_count = check_google_fact_check(domain)
+    else:
+        logger.info(
+            "Skipping Google Fact Check lookup for %s because API usage is disabled or %s is not configured.",
+            domain,
+            ENV_VAR,
+        )
+        flag_count = None
 
     score = 0.5
     if flag_count is not None:

@@ -217,9 +217,9 @@ urlcheck-smith db remove my-org.com
 ```
 
 ### Enrich a domain via Google Fact Check API
-Scouts for known misinformation flags and updates the credibility score in the local cache. Requires `CHERRY_API_KEY` (Google Fact Check Tools API key) to be set in the environment.
+Scouts for known misinformation flags and updates the credibility score in the local cache. Requires `UCSMITH_GOOGLE_API_KEY` (Google Fact Check Tools API key) to be set in the environment.
 ```bash
-export CHERRY_API_KEY="your-api-key"
+export UCSMITH_GOOGLE_API_KEY="your-api-key"
 urlcheck-smith db update example.com
 ```
 

@@ -65,7 +65,7 @@ Manage your local credibility database (``ucsmith_db.yaml``).
 
 - ``add <domain> --category <category>``: Add a trusted domain.
 - ``remove <domain>``: Remove a domain.
-- ``update <domain>``: Enrich a domain via Google Fact Check API. Requires ``CHERRY_API_KEY`` (Google Fact Check Tools API key) to be set in the environment.
+- ``update <domain>``: Enrich a domain via Google Fact Check API. Requires ``UCSMITH_GOOGLE_API_KEY`` (Google Fact Check Tools API key) to be set in the environment.
 
 Rule Precedence
 ---------------
