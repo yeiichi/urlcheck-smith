@@ -20,7 +20,11 @@ class TrustManager:
 
     def classify_url(self, url: str) -> str:
         """Classifies a single URL into a trust tier using rules then fallbacks."""
-        parsed = urlparse(url.lower())
+        normalized_url = url.lower()
+        if "://" not in normalized_url:
+            normalized_url = f"http://{normalized_url}"
+
+        parsed = urlparse(normalized_url)
         hostname = parsed.netloc
 
         # Normalize hostname for domain matching
