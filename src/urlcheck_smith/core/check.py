@@ -40,8 +40,17 @@ _DEFAULT_UA_PREFIX = "UrlCheckSmith"
 
 def _guess_human_check(content_snippet: str) -> bool:
     """
-    VERY rough heuristic to flag potential 'human check' / CAPTCHA pages.
-    MVP: simple keyword search in a short snippet.
+    Determines whether a given content snippet indicates a human verification check.
+
+    This function analyzes the input text to determine if it contains keywords commonly
+    associated with CAPTCHAs or similar human verification mechanisms.
+
+    Args:
+        content_snippet (str): The text snippet to analyze.
+
+    Returns:
+        bool: True if the snippet contains indications of a human verification check,
+        otherwise False.
     """
     lowered = content_snippet.lower()
     keywords = [

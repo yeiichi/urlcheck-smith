@@ -26,25 +26,65 @@ logger = logging.getLogger(__name__)
 
 
 def _resource_path(resource_name: str) -> Path:
+    """
+    Constructs and returns a Path object for the given resource name located
+    within the package's resource files.
+
+    Args:
+        resource_name (str): Name of the resource file to locate.
+
+    Returns:
+        Path: A pathlib.Path object representing the full path to the resource.
+    """
     return Path(resources.files(PACKAGE).joinpath(resource_name))
 
 
 def _baseline_db_path() -> Path:
+    """
+    Generates the baseline database path.
+
+    This function constructs and returns the full path to the
+    baseline database resource by combining the resource base
+    path with the database filename.
+
+    Returns:
+        Path: The full path to the baseline database file.
+    """
     return _resource_path(RESOURCE_DB_NAME)
 
 
 def _cwd_db_path() -> Path:
+    """
+    Generates the full path of the default user database in the current working directory.
+
+    This function constructs a `Path` object that combines the current working
+    directory (`Path.cwd()`) with the default database filename
+    (`DEFAULT_USER_DB_NAME`). It simplifies the process of locating the
+    user database within the current workspace.
+
+    Returns:
+        Path: The complete path to the default user database file in the
+        current working directory.
+    """
     return Path.cwd() / DEFAULT_USER_DB_NAME
 
 
 def load_db(db_path: str | Path | None = None):
     """
-    Load a YAML database.
+    Loads the database from the specified path or falls back to a default path if none is provided.
+    If the database file does not exist, initializes an empty database structure.
 
-    Resolution order:
-    1. explicit db_path
-    2. ./usmith_db.yaml in the current working directory
-    3. packaged baseline resource
+    Args:
+        db_path (str | Path | None): The path to the database file. Can be a string, Path object,
+            or None. If None, a default path will be used.
+
+    Returns:
+        dict: A dictionary containing the database structure with the following keys:
+            - "metadata": A dictionary holding metadata information (empty if database does not exist).
+            - "user_defined": A list of user-defined entries.
+            - "global_rules": A list of global rules.
+            - "discovered_cache": A list representing a discovered cache of data.
+
     """
     if db_path is None:
         candidate = _cwd_db_path()
@@ -67,12 +107,18 @@ def load_db(db_path: str | Path | None = None):
 
 def save_db(data, db_path: str | Path | None = None):
     """
-    Save a YAML database.
+    Saves the provided data to a YAML file at the specified database path. If no path
+    is provided, it defaults to the current working directory database path.
 
-    Important:
-    - Never writes to packaged resources by default.
-    - Writes to the user-writable database in the current working directory unless
-      an explicit path is provided.
+    This function ensures that the target directory exists before saving the YAML
+    file. The data is written with UTF-8 encoding and supports Unicode characters.
+
+    Args:
+        data: The data to be saved in the YAML file.
+        db_path (str | Path | None): The target file path where the YAML data is to
+            be saved. If None, the default database path in the current working
+            directory is used.
+
     """
     target = Path(db_path) if db_path is not None else _cwd_db_path()
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -83,7 +129,18 @@ def save_db(data, db_path: str | Path | None = None):
 # --- EDITOR FUNCTIONS ---
 
 def add_user_domain(name, category="General"):
-    """Adds a new domain to the user_defined list."""
+    """
+    Adds a new user-defined domain to the database if it does not already exist.
+
+    This function checks the `user_defined` list in the database for an existing
+    domain with the given name. If a domain with the same name already exists,
+    a warning is logged and no changes are made. If not, the domain is added
+    to the `user_defined` list along with its category.
+
+    Args:
+        name (str): The name of the user-defined domain to be added.
+        category (str, optional): The category of the domain. Defaults to "General".
+    """
     db = load_db()
     if any(d["name"] == name for d in db["user_defined"]):
         logger.warning(f"Editor: {name} already exists in user_defined.")
@@ -94,7 +151,16 @@ def add_user_domain(name, category="General"):
 
 
 def remove_user_domain(name):
-    """Removes a domain from the user_defined list."""
+    """
+    Removes a user-defined domain from the database if it exists.
+
+    The function checks the database for a domain with the given name in the
+    "user_defined" list. If found, it removes the domain and updates the
+    database. If the domain is not found, a warning is logged.
+
+    Args:
+        name (str): The name of the domain to be removed.
+    """
     db = load_db()
     original_count = len(db["user_defined"])
     db["user_defined"] = [d for d in db["user_defined"] if d["name"] != name]
@@ -106,7 +172,18 @@ def remove_user_domain(name):
 
 
 def modify_user_category(name, new_category):
-    """Updates the category for an existing user_defined domain."""
+    """
+    Modifies the category of a user entry in the database.
+
+    This function searches for a user entry in the "user_defined" section of the
+    database with a matching name. If found, it updates the entry's category to
+    the specified new category and saves the changes back to the database. If
+    the entry is not found, it logs a warning.
+
+    Args:
+        name (str): The name of the user whose category needs to be updated.
+        new_category (str): The new category to assign to the user entry.
+    """
     db = load_db()
     for entry in db["user_defined"]:
         if entry["name"] == name:
@@ -118,7 +195,18 @@ def modify_user_category(name, new_category):
 
 
 def clear_user_domains():
-    """Wipes all entries from the user_defined list."""
+    """
+    Clears all user-defined domains from the database.
+
+    This function resets the 'user_defined' field in the database to an empty list.
+    It ensures that all previously stored user-defined entries are cleared and the
+    updated state is saved back to the database. Additionally, an informational
+    log is generated to record the action.
+
+    Raises:
+        KeyError: If the expected 'user_defined' field is not present in the
+            loaded database dictionary.
+    """
     db = load_db()
     db["user_defined"] = []
     save_db(db)
@@ -129,7 +217,19 @@ def clear_user_domains():
 
 def check_google_fact_check(domain):
     """
-    Scouts for known misinformation flags for a given domain using the Google Fact Check Tools API.
+    Checks if the given domain has been flagged for false or misleading claims using
+    Google's Fact Check API.
+
+    This function queries Google's Fact Check API to identify claims associated with
+    the provided domain and evaluates if these claims have been negatively flagged
+    based on predefined negative terms. If the API key is missing, it will return None.
+
+    Args:
+        domain (str): The domain to search for in Google's Fact Check API.
+
+    Returns:
+        int | None: The count of negative flags found for the domain, or None if the
+        API key is missing or an error occurs.
     """
     if not GOOGLE_API_KEY:
         return None
@@ -153,6 +253,24 @@ def check_google_fact_check(domain):
 
 
 def enrich_domain(domain):
+    """
+    Process and analyze a given domain to determine its status based on various checks.
+
+    This function evaluates the given domain against user-defined rules, global rules, a
+    local denylist, and, if necessary, an external API. Based on these evaluations, the
+    domain's status is logged and its information is updated in a cache.
+
+    Args:
+        domain (str): The domain name to be analyzed and verified. The domain should be
+            provided as a string and will be sanitized (lowercased and stripped of
+            unnecessary whitespace) before processing.
+
+    Returns:
+        dict: Updated cache data for the domain, including verification status, flag
+            count, and calculated score. If the domain is verified or denied, the
+            function returns the updated cache information. Otherwise, it proceeds with
+            checks through an external API for further verification.
+    """
     db = load_db()
     domain = domain.lower().strip()
 
@@ -194,6 +312,19 @@ def enrich_domain(domain):
 
 
 def _update_cache(db, domain, flag_count, score):
+    """
+    Updates the discovered cache in the database with the provided domain information. If the
+    domain already exists in the cache, it updates the existing entry. Otherwise, it adds a
+    new entry to the cache. The cache entries include the domain name, the number of flags
+    associated, credibility score, and the last check date.
+
+    Args:
+        db (dict): The database object containing a "discovered_cache" key for the cache.
+        domain (str): The domain name to be added or updated in the cache.
+        flag_count (int): The number of flags discovered for the domain.
+        score (float): The credibility score associated with the domain.
+
+    """
     new_entry = {
         "name": domain,
         "flags_found": flag_count,

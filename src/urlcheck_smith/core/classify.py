@@ -25,6 +25,25 @@ class SiteClassifier:
             normalize_domain: bool = False,
             db_path: str | Path | None = None,
     ) -> None:
+        """
+        Initializes an instance of the class with the provided configuration options.
+
+        This constructor sets up the internal state by loading and consolidating rules
+        from the UC Smith database, user-defined paths, and other configuration details
+        necessary to perform its functions. It also sets up the trust manager with
+        specified override rules and default trust tier.
+
+        Args:
+            rules_path (Optional[Path | List[Path]]): Path(s) to user-defined rule
+                files. Can be a single path or a list of paths. If not provided, no
+                user-defined rules are loaded.
+            explain (bool): Determines whether the system should provide explanations
+                during operations. Defaults to False.
+            normalize_domain (bool): Specifies whether domain normalization should be
+                performed during operations. Defaults to False.
+            db_path (str | Path | None): Explicit path to the UC Smith database. If not
+                provided, a default resolution is performed.
+        """
         self.explain = explain
         self.normalize_domain = normalize_domain
         self._db_path = Path(db_path) if db_path is not None else None
@@ -104,6 +123,23 @@ class SiteClassifier:
         return rules
 
     def _classify_base(self, base: str) -> Tuple[Optional[str], str]:
+        """
+        Classifies a given base string based on certain matching rules.
+
+        This method applies a set of hierarchical rules to determine the category
+        of a given base input. The rules include exact matching, user-defined
+        exact matching, and longest suffix matching. If no match is found, it
+        returns a default category.
+
+        Args:
+            base (str): The base string to be classified.
+
+        Returns:
+            Tuple[Optional[str], str]: A tuple containing the matched base or
+            suffix (if applicable) and its corresponding category. If no match is
+            found, the first element of the tuple is None, and the second element
+            is the default category.
+        """
         # 1. Exact match
         if base in self._exact_rules:
             return base, self._exact_rules[base]
@@ -121,6 +157,24 @@ class SiteClassifier:
         return None, self._default_category
 
     def classify(self, records: Iterable[UrlRecord]) -> List[UrlRecord]:
+        """
+        Classifies a list of URLs into categories based on their hostname patterns.
+
+        This function processes the provided collection of `UrlRecord` objects,
+        determines the category for each record based on hostname pattern matches,
+        and applies a trust tier classification. Optionally, an explanation of
+        the classification process can be added for each record if `explain`
+        is enabled.
+
+        Args:
+            records (Iterable[UrlRecord]): A collection of `UrlRecord` objects
+                representing URLs to classify.
+
+        Returns:
+            List[UrlRecord]: A list of `UrlRecord` objects with updated
+                attributes for `base_url`, `category`, `trust_tier`, and
+                optionally an explanation (`explain`) of classification.
+        """
         out = []
         for r in records:
             parsed = urlparse(r.url)
