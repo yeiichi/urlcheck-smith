@@ -65,7 +65,25 @@ Manage your local credibility database (``ucsmith_db.yaml``).
 
 - ``add <domain> --category <category>``: Add a trusted domain.
 - ``remove <domain>``: Remove a domain.
-- ``update <domain>``: Enrich a domain via Google Fact Check API. Requires ``UCSMITH_GOOGLE_API_KEY`` (Google Fact Check Tools API key) to be set in the environment.
+- ``update <domain>``: Enrich a single domain via Google Fact Check API.
+- ``update --file <file>``: Update domains listed in a file.
+- ``update --all``: Update all previously discovered domains in the cache.
+
+**Requirements for Update:**
+- Set ``UCSMITH_GOOGLE_API_KEY`` (Google Fact Check Tools API key) in your environment.
+- An internet connection is required.
+- Results are stored in the local ``ucsmith_db.yaml`` cache.
+
+API Key (Optional)
+------------------
+
+A Google API key is **only required** for domain enrichment via the ``db update`` command. All core features (scanning, classification, HTTP checks) work without it.
+
+The package reads the API key from:
+
+.. code-block:: bash
+
+   export UCSMITH_GOOGLE_API_KEY="your-api-key"
 
 Rule Precedence
 ---------------

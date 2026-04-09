@@ -61,11 +61,3 @@ Getting started
    api/index
    development
    changelog
-
-API reference
--------------
-
-.. toctree::
-   :maxdepth: 2
-
-   api/index

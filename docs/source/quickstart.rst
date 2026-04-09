@@ -14,14 +14,53 @@ The most common use case is to scan a text file for URLs and classify them.
 
 This will extract URLs, classify them by domain suffix, perform HTTP checks, and save the result to ``urls.csv``.
 
-Single URL Classification
--------------------------
+Single URL Classification (CLI)
+-------------------------------
 
-You can also classify a single URL and see why it was categorized a certain way.
+You can classify a single URL and see why it was categorized a certain way.
 
 .. code-block:: bash
 
    urlcheck-smith classify-url https://www.itu.int/en/Pages/default.aspx --explain
+
+API Example (Library Usage)
+---------------------------
+
+If you want to classify a URL from Python, you can use the public API directly.
+The example below shows a small helper script that demonstrates how to create a URL record and classify it.
+
+.. code-block:: python
+
+   from urlcheck_smith import SiteClassifier, UrlRecord
+
+   def classify_single_url(
+           url: str,
+           *,
+           rules_path: str | None = None,
+           explain: bool = False,
+   ) -> dict:
+       classifier = SiteClassifier(
+           rules_path=rules_path,
+           explain=explain,
+           normalize_domain=True,
+       )
+
+       rec = classifier.classify([UrlRecord(url=url)])[0]
+
+       result = {
+           "url": rec.url,
+           "base_url": rec.base_url,
+           "category": rec.category,
+           "trust_tier": rec.trust_tier,
+       }
+
+       if rec.explain:
+           result["explain"] = rec.explain
+
+       return result
+
+   data = classify_single_url("https://www.itu.int/en/Pages/default.aspx", explain=True)
+   print(data)
 
 Batch Classification (No HTTP)
 ------------------------------
