@@ -58,8 +58,21 @@ class SiteClassifier:
         # Load DB using explicit path if provided, otherwise default resolution
         self._uc_smith_db = load_db(self._db_path)
 
+        self._trust_manager = TrustManager(
+            override_rules=self._get_all_raw_rules(),
+            default_tier=self._default_trust_tier,
+            db_path=self._db_path,
+        )
+        # Shared database instance to avoid redundant I/O
+        self._trust_manager._uc_smith_db = self._uc_smith_db
+
         # Load consolidated rules from UC Smith DB
         self._load_from_db()
+
+        # Update defaults from DB metadata if available (v1.7+)
+        metadata = self._uc_smith_db.get("metadata", {})
+        self._default_category = metadata.get("default_category", self._default_category)
+        self._default_trust_tier = metadata.get("default_trust_tier", self._default_trust_tier)
 
         # Load user-defined rules (highest priority)
         if rules_path:
@@ -70,27 +83,35 @@ class SiteClassifier:
         # Ensure longest suffix wins
         self._suffix_rules.sort(key=lambda x: len(x[0]), reverse=True)
 
-        self._trust_manager = TrustManager(
-            override_rules=self._get_all_raw_rules(),
-            default_tier=self._default_trust_tier,
-            db_path=self._db_path,
-        )
-
     def _load_from_db(self):
         """Loads rules from the internal uc_smith_db."""
+        # Load user_defined rules
+        for entry in self._uc_smith_db.get("user_defined", []):
+            name = entry.get("name", "").lower()
+            cat = entry.get("category", "User-Verified")
+            if not name:
+                continue
+            self._suffix_rules.append((name, cat))
+
         raw_rules = self._uc_smith_db.get("global_rules", [])
         for rule in raw_rules:
             cat = rule.get("category")
-            if not cat:
-                continue
-
             name = rule.get("name", "").lower()
-            if not name:
+            if not cat or not name:
                 continue
 
             self._suffix_rules.append((name, cat))
 
         self._suffix_rules.sort(key=lambda x: len(x[0]), reverse=True)
+
+    def _tier_from_category(self, category: str | None) -> str:
+        if category == "government":
+            return "TIER_1_OFFICIAL"
+        if category in {"education", "news", "standards"}:
+            return "TIER_2_RELIABLE"
+        if category == "international":
+            return "TIER_1_OFFICIAL"
+        return "TIER_3_GENERAL"
 
     def _load_layer(self, identifier: str):
         """Loads and parses a YAML layer into the rule buckets."""
@@ -140,16 +161,11 @@ class SiteClassifier:
             found, the first element of the tuple is None, and the second element
             is the default category.
         """
-        # 1. Exact match
+        # 1. Exact match (from loaded layers)
         if base in self._exact_rules:
             return base, self._exact_rules[base]
 
-        # 2. User-defined exact match
-        for entry in self._uc_smith_db.get("user_defined", []):
-            if entry.get("name") == base:
-                return base, entry.get("category", "User-Verified")
-
-        # 3. Longest suffix match
+        # 2. Longest suffix match (includes global_rules and user_defined from DB)
         for suffix, cat in self._suffix_rules:
             if base == suffix or base.endswith(f".{suffix}"):
                 return suffix, cat
@@ -179,6 +195,10 @@ class SiteClassifier:
         for r in records:
             parsed = urlparse(r.url)
             hostname = parsed.netloc.lower()
+            if not hostname and self.normalize_domain:
+                # If no scheme is provided, urlparse may put the domain in the path
+                temp_url = r.url if "://" in r.url else f"http://{r.url}"
+                hostname = urlparse(temp_url).netloc.lower()
 
             base = hostname[4:] if hostname.startswith("www.") else hostname
 
@@ -190,6 +210,10 @@ class SiteClassifier:
                 if category_full != self._default_category:
                     matched_pattern, category = matched_pattern_full, category_full
 
+            trust_tier = self._trust_manager.classify_url(r.url)
+            if trust_tier == self._default_trust_tier:
+                trust_tier = self._tier_from_category(category)
+
             if self.explain:
                 if matched_pattern:
                     explain_msg = f"Matched pattern '{matched_pattern}' -> category '{category}'"
@@ -200,7 +224,7 @@ class SiteClassifier:
                 r,
                 base_url=hostname,
                 category=category,
-                trust_tier=self._trust_manager.classify_url(r.url),
+                trust_tier=trust_tier,
                 explain=explain_msg,
             )
             out.append(new)

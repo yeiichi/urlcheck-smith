@@ -6,7 +6,7 @@ from urlcheck_smith.cli import main
 
 
 def test_classify_url_json_default(capsys) -> None:
-    argv = ["classify-url", "https://www.soumu.go.jp/"]
+    argv = ["classify-url", "https://www.itu.int/en/Pages/default.aspx"]
     rc = main(argv)
     assert rc == 0
 
@@ -15,8 +15,8 @@ def test_classify_url_json_default(capsys) -> None:
     assert out  # non-empty
 
     data = json.loads(out)
-    assert data["url"] == "https://www.soumu.go.jp/"
-    assert data["base_url"] == "www.soumu.go.jp"
-    # From built-in rules: .go.jp → government
-    assert data["category"] == "government"
+    assert data["url"] == "https://www.itu.int/en/Pages/default.aspx"
+    assert data["base_url"] == "www.itu.int"
+    # From built-in rules: .int → international
+    assert data["category"] == "international"
     assert data["trust_tier"] == "TIER_1_OFFICIAL"

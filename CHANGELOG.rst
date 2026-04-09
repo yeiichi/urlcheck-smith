@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.6.0 (2026-04-09)
+------------------
+- Added `nytimes.com` to the default credibility database.
+- Internal database schema versioning and improved rule precedence logic.
+- Comprehensive documentation overhaul and Sphinx support improvements.
+- Support for detailed classification explanation in `SiteClassifier`.
+- Refined trust tier classification with priority-based stage matching.
+
 0.5.0 (2026-04-07)
 ------------------
 - Updated minimum Python version requirement to 3.10+ (removing support for 3.8 and 3.9).

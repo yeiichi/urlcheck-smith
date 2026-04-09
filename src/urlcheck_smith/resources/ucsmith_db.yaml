@@ -1,6 +1,19 @@
-version: 1.0
+version: 1.7
 metadata:
   description: 'UcSmith: Multi-Tiered Credibility Database'
+  definitions:
+    TIER_1_OFFICIAL: >
+      Highest trust level. Entities established by law, treaty, or state mandate.
+      Includes sovereign governments, central banks, and intergovernmental 
+      organizations (IGOs). These sources are considered primary records.
+    TIER_2_RELIABLE: >
+      High credibility. Entities with rigorous editorial oversight, academic
+      peer-review, or industry-wide technical consensus. Includes major news 
+      wires, accredited universities, and global standards bodies (e.g., 3GPP).
+    TIER_3_GENERAL: >
+      Baseline trust. General-purpose domains, open-registration TLDs, and 
+      independent NGOs. While often reputable, these lack the formal mandate 
+      of Tier 1 or the strict gatekeeping of Tier 2.
   priority:
   - user_defined
   - api_audit
@@ -11,37 +24,70 @@ user_defined:
   trust_tier: TIER_1_OFFICIAL
 audit_log: []
 global_rules:
-- name: ac.jp
-  category: education
-  trust_tier: TIER_2_RELIABLE
-- name: edu
-  category: education
-  trust_tier: TIER_2_RELIABLE
-- name: go.ke
+# ==========================================
+# TIER 1: OFFICIAL (GOVERNMENT & TREATY)
+# ==========================================
+# International & Supranational
+- name: int
+  category: international
+  trust_tier: TIER_1_OFFICIAL
+- name: europa.eu
+  category: international
+  trust_tier: TIER_1_OFFICIAL
+- name: who.int
+  category: international
+  trust_tier: TIER_1_OFFICIAL
+- name: nato.int
+  category: international
+  trust_tier: TIER_1_OFFICIAL
+- name: imf.org
+  category: international
+  trust_tier: TIER_1_OFFICIAL
+- name: worldbank.org
+  category: international
+  trust_tier: TIER_1_OFFICIAL
+- name: wto.org
+  category: international
+  trust_tier: TIER_1_OFFICIAL
+- name: iaea.org
+  category: international
+  trust_tier: TIER_1_OFFICIAL
+- name: unicef.org
+  category: international
+  trust_tier: TIER_1_OFFICIAL
+- name: unesco.org
+  category: international
+  trust_tier: TIER_1_OFFICIAL
+- name: interpol.int
+  category: international
+  trust_tier: TIER_1_OFFICIAL
+
+# Central Banks
+- name: federalreserve.gov
+  entity: USA
   category: government
   trust_tier: TIER_1_OFFICIAL
-- name: gouv.qc.ca
+- name: ecb.europa.eu
+  entity: EU
+  category: international
+  trust_tier: TIER_1_OFFICIAL
+- name: boj.or.jp
+  entity: JPN
   category: government
   trust_tier: TIER_1_OFFICIAL
-- name: gov.br
+- name: pbc.gov.cn
+  entity: CHN
   category: government
   trust_tier: TIER_1_OFFICIAL
-- name: gov.in
+- name: rbi.org.in
+  entity: IND
   category: government
   trust_tier: TIER_1_OFFICIAL
-- name: gov.au
-  entity: AUS
-  label: Australia
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: gv.at
-  entity: AUT
-  label: Austria
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: belgium.be
-  entity: BEL
-  label: Belgium
+
+# Government - Americas
+- name: gov
+  entity: USA
+  label: United_States
   category: government
   trust_tier: TIER_1_OFFICIAL
 - name: gc.ca
@@ -49,44 +95,46 @@ global_rules:
   label: Canada
   category: government
   trust_tier: TIER_1_OFFICIAL
+- name: gob.mx
+  entity: MEX
+  label: Mexico
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gob.ar
+  entity: ARG
+  label: Argentina
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gov.br
+  entity: BRA
+  label: Brazil
+  category: government
+  trust_tier: TIER_1_OFFICIAL
 - name: gob.cl
   entity: CHL
   label: Chile
   category: government
   trust_tier: TIER_1_OFFICIAL
-- name: gov.co
-  entity: COL
-  label: Colombia
+- name: gob.pe
+  entity: PER
+  label: Peru
   category: government
   trust_tier: TIER_1_OFFICIAL
-- name: go.cr
-  entity: CRI
-  label: Costa_Rica
+- name: gub.uy
+  entity: URY
+  label: Uruguay
   category: government
   trust_tier: TIER_1_OFFICIAL
-- name: vlada.cz
-  entity: CZE
-  label: Czechia
+- name: gov.jm
+  entity: JAM
+  label: Jamaica
   category: government
   trust_tier: TIER_1_OFFICIAL
-- name: denmark.dk
-  entity: DNK
-  label: Denmark
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: riigiteataja.ee
-  entity: EST
-  label: Estonia
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: valtioneuvosto.fi
-  entity: FIN
-  label: Finland
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: gouv.fr
-  entity: FRA
-  label: France
+
+# Government - Europe
+- name: gov.uk
+  entity: GBR
+  label: United_Kingdom
   category: government
   trust_tier: TIER_1_OFFICIAL
 - name: bund.de
@@ -94,29 +142,9 @@ global_rules:
   label: Germany
   category: government
   trust_tier: TIER_1_OFFICIAL
-- name: gov.gr
-  entity: GRC
-  label: Greece
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: gov.hu
-  entity: HUN
-  label: Hungary
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: stjornarradid.is
-  entity: ISL
-  label: Iceland
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: gov.ie
-  entity: IRL
-  label: Ireland
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: gov.il
-  entity: ISR
-  label: Israel
+- name: gouv.fr
+  entity: FRA
+  label: France
   category: government
   trust_tier: TIER_1_OFFICIAL
 - name: governo.it
@@ -124,79 +152,9 @@ global_rules:
   label: Italy
   category: government
   trust_tier: TIER_1_OFFICIAL
-- name: go.jp
-  entity: JPN
-  label: Japan
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: mk.gov.lv
-  entity: LVA
-  label: Latvia
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: lrv.lt
-  entity: LTU
-  label: Lithuania
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: public.lu
-  entity: LUX
-  label: Luxembourg
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: gob.mx
-  entity: MEX
-  label: Mexico
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: government.nl
-  entity: NLD
-  label: Netherlands
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: govt.nz
-  entity: NZL
-  label: New_Zealand
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: regjeringen.no
-  entity: NOR
-  label: Norway
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: gov.pl
-  entity: POL
-  label: Poland
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: portugal.gov.pt
-  entity: PRT
-  label: Portugal
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: gov.sk
-  entity: SVK
-  label: Slovakia
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: gov.si
-  entity: SVN
-  label: Slovenia
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: go.kr
-  entity: KOR
-  label: South_Korea
-  category: government
-  trust_tier: TIER_1_OFFICIAL
 - name: gob.es
   entity: ESP
   label: Spain
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: regeringen.se
-  entity: SWE
-  label: Sweden
   category: government
   trust_tier: TIER_1_OFFICIAL
 - name: admin.ch
@@ -204,73 +162,212 @@ global_rules:
   label: Switzerland
   category: government
   trust_tier: TIER_1_OFFICIAL
+- name: gv.at
+  entity: AUT
+  label: Austria
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: fgov.be
+  entity: BEL
+  label: Belgium
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: suomi.fi
+  entity: FIN
+  label: Finland
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: valitsus.ee
+  entity: EST
+  label: Estonia
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gov.ua
+  entity: UKR
+  label: Ukraine
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+
+# Government - Asia & Oceania
+- name: go.jp
+  entity: JPN
+  label: Japan
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gov.in
+  entity: IND
+  label: India
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: go.kr
+  entity: KOR
+  label: South_Korea
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gov.au
+  entity: AUS
+  label: Australia
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gov.sg
+  entity: SGP
+  label: Singapore
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: go.id
+  entity: IDN
+  label: Indonesia
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: go.th
+  entity: THA
+  label: Thailand
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gov.ph
+  entity: PHL
+  label: Philippines
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gov.my
+  entity: MYS
+  label: Malaysia
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gov.tw
+  entity: TWN
+  label: Taiwan
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gov.hk
+  entity: HKG
+  label: Hong_Kong
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+
+# Government - Africa & Middle East
+- name: gov.za
+  entity: ZAF
+  label: South_Africa
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gov.ng
+  entity: NGA
+  label: Nigeria
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: go.ke
+  entity: KEN
+  label: Kenya
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gov.eg
+  entity: EGY
+  label: Egypt
+  category: government
+  trust_tier: TIER_1_OFFICIAL
+- name: gov.sa
+  entity: SAU
+  label: Saudi_Arabia
+  category: government
+  trust_tier: TIER_1_OFFICIAL
 - name: gov.tr
   entity: TUR
-  label: Türkiye
+  label: Turkiye
   category: government
   trust_tier: TIER_1_OFFICIAL
-- name: gov.uk
-  entity: GBR
-  label: United_Kingdom
-  category: government
+
+# Military
+- name: mil
+  category: military
   trust_tier: TIER_1_OFFICIAL
-- name: gov
-  entity: USA
-  label: United_States
-  category: government
-  trust_tier: TIER_1_OFFICIAL
-- name: europa.eu
-  category: international
-  trust_tier: TIER_1_OFFICIAL
-- name: un.org
-  category: international
-  trust_tier: TIER_1_OFFICIAL
-- name: lg.jp
-  category: local_gov
-  trust_tier: TIER_1_OFFICIAL
-- name: afp.com
+
+# ==========================================
+# TIER 2: RELIABLE (STANDARDS, NEWS, ACADEMIC)
+# ==========================================
+# Technical Standards & Industry Alliances
+- name: 3gpp.org
+  category: standards
+  trust_tier: TIER_2_RELIABLE
+- name: gsma.com
+  category: standards
+  trust_tier: TIER_2_RELIABLE
+- name: o-ran.org
+  category: standards
+  trust_tier: TIER_2_RELIABLE
+- name: etsi.org
+  category: standards
+  trust_tier: TIER_2_RELIABLE
+- name: ietf.org
+  category: standards
+  trust_tier: TIER_2_RELIABLE
+- name: ieee.org
+  category: standards
+  trust_tier: TIER_2_RELIABLE
+- name: w3.org
+  category: standards
+  trust_tier: TIER_2_RELIABLE
+- name: iso.org
+  category: standards
+  trust_tier: TIER_2_RELIABLE
+
+# News Agencies
+- name: reuters.com
   category: news
   trust_tier: TIER_2_RELIABLE
 - name: apnews.com
   category: news
   trust_tier: TIER_2_RELIABLE
-- name: asahi.com
-  category: news
-  trust_tier: TIER_2_RELIABLE
-- name: bbc.co.uk
+- name: afp.com
   category: news
   trust_tier: TIER_2_RELIABLE
 - name: bbc.com
   category: news
   trust_tier: TIER_2_RELIABLE
-- name: dw.com
-  category: news
-  trust_tier: TIER_2_RELIABLE
-- name: nikkei.com
-  category: news
-  trust_tier: TIER_2_RELIABLE
-- name: nytimes.com
-  category: news
-  trust_tier: TIER_2_RELIABLE
-- name: reuters.com
+- name: aljazeera.com
   category: news
   trust_tier: TIER_2_RELIABLE
 - name: theguardian.com
   category: news
   trust_tier: TIER_2_RELIABLE
-- name: wsj.com
+- name: economist.com
   category: news
   trust_tier: TIER_2_RELIABLE
-- name: yomiuri.co.jp
+- name: nytimes.com
   category: news
   trust_tier: TIER_2_RELIABLE
+
+# Academic Suffixes
+- name: edu
+  category: education
+  trust_tier: TIER_2_RELIABLE
+- name: ac.uk
+  category: education
+  trust_tier: TIER_2_RELIABLE
+- name: ac.jp
+  category: education
+  trust_tier: TIER_2_RELIABLE
+- name: edu.au
+  category: education
+  trust_tier: TIER_2_RELIABLE
+
+# ==========================================
+# TIER 3: GENERAL (UNVETTED BASELINE)
+# ==========================================
+- name: wikipedia.org
+  category: organization
+  trust_tier: TIER_3_GENERAL
+- name: github.com
+  category: technology
+  trust_tier: TIER_3_GENERAL
+
+# Baseline Catch-alls
 - name: org
   category: non_profit
   trust_tier: TIER_3_GENERAL
-- name: or.jp
-  category: organization
+- name: com
+  category: commercial
   trust_tier: TIER_3_GENERAL
-- name: eu
-  category: regional
+- name: net
+  category: network
   trust_tier: TIER_3_GENERAL
-domains: []

@@ -8,9 +8,10 @@ from datetime import datetime
 from importlib import resources
 from pathlib import Path
 from typing import Any, List
+from urllib.parse import urlparse
 
-from . import UrlRecord, SiteClassifier, check_urls, extract_urls_from_paths
-from .core.update_yaml import add_user_domain, enrich_domain, remove_user_domain
+from . import UrlRecord, SiteClassifier, check_urls, extract_urls_from_paths, stream_extract_from_file
+from .core.update_yaml import add_user_domain, enrich_domain, remove_user_domain, load_db
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +214,21 @@ def build_parser() -> ArgumentParser:
         "update",
         help="Enrich/Update a domain in the database.",
     )
-    db_update.add_argument("domain", help="Domain to enrich (e.g., example.com).")
+    db_update_group = db_update.add_mutually_exclusive_group(required=False)
+    db_update_group.add_argument(
+        "domain", nargs="?", help="Domain to enrich (e.g., example.com)."
+    )
+    db_update_group.add_argument(
+        "--file",
+        "-f",
+        type=Path,
+        help="File containing a list of URLs or domains to enrich.",
+    )
+    db_update.add_argument(
+        "--all",
+        action="store_true",
+        help="Update all domains currently in the discovered cache.",
+    )
     db_update.add_argument(
         "--no-api",
         action="store_true",
@@ -455,12 +470,61 @@ def run_classify(args: Namespace) -> int:
 
 def run_db(args: Namespace) -> int:
     """
-    Executes database-related commands such as updating, adding, or removing user domains
-    based on the provided arguments.
+    Executes database-related operations such as updating, adding, or removing domains.
+
+    This function processes commands based on the value of the `db_command` parameter in the
+    provided arguments. Supported commands include updating domains with enrichment from 
+    a file or domain input, adding user domains with categories, and removing user domains.
+
+    Args:
+        args (Namespace): A namespace object containing command arguments for database 
+            operations. Expected attributes include `db_command` (str), `file` (Path or None), 
+            `domain` (str or None), `category` (str or None), and `no_api` (bool).
+
+    Returns:
+        int: An integer indicating the exit status of the operation. Typically, `0` is returned 
+            for success, while `1` indicates a failure, such as a missing file.
     """
+    args_dict = vars(args)
+
     if args.db_command == "update":
-        logger.info(f"Enriching domain: {args.domain}")
-        enrich_domain(args.domain, use_api=not args.no_api)
+        use_api = not args_dict.get("no_api", False)
+        if args_dict.get("all", False):
+            db = load_db()
+            cache = db.get("discovered_cache", [])
+            if not cache:
+                logger.info("No domains in discovered cache to update.")
+                return 0
+            logger.info(f"Updating all {len(cache)} domains in cache...")
+            for entry in cache:
+                domain = entry.get("name")
+                if domain:
+                    logger.info(f"Enriching domain: {domain}")
+                    enrich_domain(domain, use_api=use_api)
+        elif args_dict.get("file") is not None:
+            db_file = args.file
+            if not db_file.exists():
+                logger.error(f"File not found: {db_file}")
+                return 1
+            logger.info(f"Bulk enriching domains from {db_file}...")
+            domains_seen = set()
+            for record in stream_extract_from_file(db_file):
+                try:
+                    parsed = urlparse(record.url)
+                    domain = parsed.netloc or record.url
+                    domain = domain.lower().strip()
+                    if domain and domain not in domains_seen:
+                        logger.info(f"Enriching domain: {domain}")
+                        enrich_domain(domain, use_api=use_api)
+                        domains_seen.add(domain)
+                except Exception as e:
+                    logger.error(f"Error processing {record.url}: {e}")
+        elif args_dict.get("domain"):
+            logger.info(f"Enriching domain: {args.domain}")
+            enrich_domain(args.domain, use_api=use_api)
+        else:
+            logger.error("Please specify a domain, a --file, or use --all.")
+            return 1
     elif args.db_command == "add":
         logger.info(f"Adding user domain: {args.domain} ({args.category})")
         add_user_domain(args.domain, args.category)

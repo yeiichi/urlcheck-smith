@@ -14,9 +14,18 @@ class TrustManager:
         self._uc_smith_db = load_db(self._db_path)
 
     def _reload(self):
-        # Only reload if we are using the default resolution or the file might have changed.
-        # For simplicity, we always reload as it was before, but ensuring load_db is used.
+        # Reloading from disk to pick up any changes (e.g. from editor functions)
+        # load_db uses caching/defaults efficiently.
         self._uc_smith_db = load_db(self._db_path)
+
+    def _tier_from_category(self, category: str | None) -> str:
+        if category == "government":
+            return "TIER_1_OFFICIAL"
+        if category in {"education", "news", "standards"}:
+            return "TIER_2_RELIABLE"
+        if category == "international":
+            return "TIER_1_OFFICIAL"
+        return "TIER_3_GENERAL"
 
     def classify_url(self, url: str) -> str:
         """Classifies a single URL into a trust tier using rules then fallbacks."""
@@ -32,50 +41,63 @@ class TrustManager:
 
         self._reload()
 
-        # 1. UC SMITH DB user_defined
-        for entry in self._uc_smith_db.get("user_defined", []):
-            entry_name = entry.get("name", "").lower()
-            if entry_name == domain_only or entry_name == hostname or hostname.endswith(f".{entry_name}"):
-                if "trust_tier" in entry:
-                    return entry["trust_tier"]
-                return "TIER_1_OFFICIAL"
+        # v1.7+ metadata-driven priority
+        metadata = self._uc_smith_db.get("metadata", {})
+        priority = metadata.get("priority", ["user_defined", "api_audit", "global_rules"])
 
-        # 2. UC SMITH DB global rules
-        rules = self._uc_smith_db.get("global_rules", [])
-        sorted_rules = sorted(rules, key=lambda x: len(x.get("name", "")), reverse=True)
-        for rule in sorted_rules:
-            name = rule.get("name", "").lower()
-            if not name:
-                continue
+        # Add explicit override as first priority if not specified (legacy behavior)
+        if "override" not in priority:
+            priority = ["override"] + priority
 
-            if hostname == name or domain_only == name or hostname.endswith(f".{name}"):
-                if "trust_tier" in rule:
-                    return rule["trust_tier"]
-                return "TIER_1_OFFICIAL" if rule.get("category") == "government" else "TIER_3_GENERAL"
+        for stage in priority:
+            # 1. user_defined
+            if stage == "user_defined":
+                for entry in self._uc_smith_db.get("user_defined", []):
+                    entry_name = entry.get("name", "").lower()
+                    if entry_name == domain_only or entry_name == hostname or hostname.endswith(f".{entry_name}"):
+                        if "trust_tier" in entry:
+                            return entry["trust_tier"]
+                        return self._tier_from_category(entry.get("category"))
 
-        # 3. discovered_cache
-        for entry in self._uc_smith_db.get("discovered_cache", []):
-            if entry.get("name") == domain_only:
-                score = entry.get("credibility_score", 0.5)
-                if score >= 0.8:
-                    return "TIER_1_OFFICIAL"
-                if score >= 0.5:
-                    return "TIER_2_RELIABLE"
-                return "TIER_3_GENERAL"
+            # 2. global_rules
+            elif stage == "global_rules":
+                rules = self._uc_smith_db.get("global_rules", [])
+                sorted_rules = sorted(rules, key=lambda x: len(x.get("name", "")), reverse=True)
+                for rule in sorted_rules:
+                    name = rule.get("name", "").lower()
+                    if not name:
+                        continue
+                    if hostname == name or domain_only == name or hostname.endswith(f".{name}"):
+                        if "trust_tier" in rule:
+                            return rule["trust_tier"]
+                        return self._tier_from_category(rule.get("category"))
 
-        # 4. explicit override rules
-        for rule in self.override_rules:
-            match = False
-            if "domain" in rule:
-                target_domain = rule["domain"].lower()
-                if hostname == target_domain or domain_only == target_domain:
-                    match = True
-            elif "suffix" in rule:
-                if hostname.endswith(rule["suffix"].lower()):
-                    match = True
+            # 3. api_audit / discovered_cache
+            elif stage == "api_audit":
+                for entry in self._uc_smith_db.get("discovered_cache", []):
+                    if entry.get("name") == domain_only:
+                        score = entry.get("credibility_score", 0.5)
+                        if score >= 0.8:
+                            return "TIER_1_OFFICIAL"
+                        if score >= 0.5:
+                            return "TIER_2_RELIABLE"
+                        return "TIER_3_GENERAL"
 
-            if match and "trust_tier" in rule:
-                return rule["trust_tier"]
+            # 4. explicit override rules
+            elif stage == "override":
+                for rule in self.override_rules:
+                    match = False
+                    if "domain" in rule:
+                        target_domain = rule["domain"].lower()
+                        if hostname == target_domain or domain_only == target_domain:
+                            match = True
+                    elif "suffix" in rule:
+                        if hostname.endswith(rule["suffix"].lower()):
+                            match = True
+                    if match and "trust_tier" in rule:
+                        return rule["trust_tier"]
+                    if match:
+                        return self._tier_from_category(rule.get("category"))
 
         return self.default_tier
 

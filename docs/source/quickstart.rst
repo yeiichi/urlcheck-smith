@@ -21,7 +21,7 @@ You can also classify a single URL and see why it was categorized a certain way.
 
 .. code-block:: bash
 
-   urlcheck-smith classify-url https://www.soumu.go.jp/ --explain
+   urlcheck-smith classify-url https://www.itu.int/en/Pages/default.aspx --explain
 
 Batch Classification (No HTTP)
 ------------------------------

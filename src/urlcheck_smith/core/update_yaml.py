@@ -31,17 +31,13 @@ LOG_LEVEL = logging.WARNING if QUIET_MODE else logging.INFO
 logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+_ANNOUNCED_DB_PATHS: set[str] = set()
+
 
 def _resource_path(resource_name: str) -> Path:
     """
     Constructs and returns a Path object for the given resource name located
     within the package's resource files.
-
-    Args:
-        resource_name (str): Name of the resource file to locate.
-
-    Returns:
-        Path: A pathlib.Path object representing the full path to the resource.
     """
     return Path(resources.files(PACKAGE).joinpath(resource_name))
 
@@ -49,13 +45,6 @@ def _resource_path(resource_name: str) -> Path:
 def _baseline_db_path() -> Path:
     """
     Generates the baseline database path.
-
-    This function constructs and returns the full path to the
-    baseline database resource by combining the resource base
-    path with the database filename.
-
-    Returns:
-        Path: The full path to the baseline database file.
     """
     return _resource_path(RESOURCE_DB_NAME)
 
@@ -63,35 +52,22 @@ def _baseline_db_path() -> Path:
 def _cwd_db_path() -> Path:
     """
     Generates the full path of the default user database in the current working directory.
-
-    This function constructs a `Path` object that combines the current working
-    directory (`Path.cwd()`) with the default database filename
-    (`DEFAULT_USER_DB_NAME`). It simplifies the process of locating the
-    user database within the current workspace.
-
-    Returns:
-        Path: The complete path to the default user database file in the
-        current working directory.
     """
     return Path.cwd() / DEFAULT_USER_DB_NAME
+
+
+def _announce_db_source(db_path: Path) -> None:
+    key = str(db_path.resolve()) if db_path.exists() else str(db_path)
+    if key in _ANNOUNCED_DB_PATHS:
+        return
+    _ANNOUNCED_DB_PATHS.add(key)
+    logger.info("Using: database %s", db_path)
 
 
 def load_db(db_path: str | Path | None = None):
     """
     Loads the database from the specified path or falls back to a default path if none is provided.
     If the database file does not exist, initializes an empty database structure.
-
-    Args:
-        db_path (str | Path | None): The path to the database file. Can be a string, Path object,
-            or None. If None, a default path will be used.
-
-    Returns:
-        dict: A dictionary containing the database structure with the following keys:
-            - "metadata": A dictionary holding metadata information (empty if database does not exist).
-            - "user_defined": A list of user-defined entries.
-            - "global_rules": A list of global rules.
-            - "discovered_cache": A list representing a discovered cache of data.
-
     """
     if db_path is None:
         candidate = _cwd_db_path()
@@ -101,6 +77,8 @@ def load_db(db_path: str | Path | None = None):
             db_path = _baseline_db_path()
 
     db_path = Path(db_path)
+    _announce_db_source(db_path)
+
     if not db_path.exists():
         return {"metadata": {}, "user_defined": [], "global_rules": [], "discovered_cache": []}
 
@@ -129,6 +107,17 @@ def save_db(data, db_path: str | Path | None = None):
     """
     target = Path(db_path) if db_path is not None else _cwd_db_path()
     target.parent.mkdir(parents=True, exist_ok=True)
+
+    # Ensure metadata is updated to the latest version on save
+    if "version" in data:
+        data["version"] = 1.7
+    elif "metadata" in data and "version" not in data:
+        # If it's a newer structure but version was at root
+        pass
+    else:
+        # If no version at all, maybe it's a legacy or partial save
+        data["version"] = 1.7
+
     with target.open("w", encoding="utf-8") as f:
         yaml.dump(data, f, sort_keys=False, default_flow_style=False, allow_unicode=True)
 

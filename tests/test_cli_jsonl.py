@@ -11,7 +11,7 @@ def test_scan_jsonl_no_http(tmp_path: Path) -> None:
     # Prepare input file with two URLs
     input_file = tmp_path / "input.txt"
     input_file.write_text(
-        "See https://example.com and example.com and https://www.soumu.go.jp/ .",
+        "See https://example.com and example.com and https://www.itu.int/en/Pages/default.aspx .",
         encoding="utf-8",
     )
 
@@ -38,7 +38,7 @@ def test_scan_jsonl_no_http(tmp_path: Path) -> None:
     urls = {obj["url"] for obj in objs}
     assert "https://example.com" in urls
     assert "http://example.com" in urls
-    assert "https://www.soumu.go.jp" in urls
+    assert "https://www.itu.int/en/Pages/default.aspx" in urls
 
     # classification is present (category non-empty)
     categories = {obj["category"] for obj in objs}

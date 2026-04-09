@@ -53,3 +53,6 @@ pytest_cache/
 
 # Wheel build leftovers
 *.whl
+
+# Misc
+scripts/
