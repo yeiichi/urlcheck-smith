@@ -1,19 +1,23 @@
+# c.f. https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
 [build-system]
-requires = ["setuptools>=64", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "urlcheck-smith"
 version = "0.6.0"
+dependencies = [
+  "requests>=2.33.1",
+  "PyYAML>=6.0.0",
+  "urlextract>=1.9.0",
+]
+requires-python = ">=3.12"
+authors = [{ name = "Eiichi Yamamoto" }]
 description = "Minimal URL extraction / classification / HTTP check pipeline."
 readme = "README.md"
-requires-python = ">=3.10"
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = ["LICEN[CS]E.*"]
 keywords = ["url", "check", "classification", "pipeline", "trust-tier", "soft-404"]
-authors = [
-  { name = "Eiichi Yamamoto" }
-]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
@@ -21,16 +25,6 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Operating System :: OS Independent",
-]
-dependencies = [
-  "requests>=2.31.0",
-  "PyYAML>=6.0.0",
-  "urlextract>=1.9.0",
-]
-
-[project.optional-dependencies]
-dev = [
-  "pytest>=9.0.0",
 ]
 
 [project.urls]
@@ -42,11 +36,22 @@ Changelog = "https://urlcheck-smith.readthedocs.io/en/latest/changelog.html"
 [project.scripts]
 urlcheck-smith = "urlcheck_smith.cli:main"
 
-[tool.setuptools]
-package-dir = {"" = "src"}
+[tool.hatch.build.targets.wheel]
+packages = ["src/urlcheck_smith"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[dependency-groups]
+dev = [
+    "furo>=2025.12.19",
+    "pytest>=9.0.3",
+    "sphinx>=9.1.0",
+]
+[tool.pytest.ini_options]
+pythonpath = ["src"]
 
-[tool.setuptools.package-data]
-"urlcheck_smith" = ["resources/*.yaml"]
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+branch = "main"
+upload_to_pypi = false
+upload_to_release = true
+build_command = "uv build"
+allow_zero_version = true
