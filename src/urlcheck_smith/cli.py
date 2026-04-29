@@ -11,6 +11,7 @@ from typing import Any, List
 from urllib.parse import urlparse
 
 from . import UrlRecord, SiteClassifier, check_urls, extract_urls_from_paths, stream_extract_from_file
+from .core.extract import extract_https_urls, urls_to_csv
 from .core.update_yaml import add_user_domain, enrich_domain, remove_user_domain, load_db
 
 logger = logging.getLogger(__name__)
@@ -257,6 +258,26 @@ def build_parser() -> ArgumentParser:
         type=Path,
         default=Path.cwd() / USER_DB_NAME,
         help="Target path for the initialized database (default: ./usmith_db.yaml).",
+    )
+
+    # --- extract-https subcommand -------------------------------------------
+    extract_https = sub.add_parser(
+        "extract-https",
+        help="Interactively extract unique HTTPS URLs from a file and save them to CSV.",
+    )
+    extract_https.add_argument(
+        "--input",
+        "-i",
+        type=Path,
+        default=None,
+        help="Source text file. If omitted, you will be prompted.",
+    )
+    extract_https.add_argument(
+        "--output",
+        "-o",
+        type=Path,
+        default=None,
+        help="Output CSV path. If omitted, you will be prompted (blank uses a timestamped default).",
     )
 
     return parser
@@ -552,6 +573,58 @@ def run_init(args: Namespace) -> int:
     return _init_local_db(args.target, force=args.force)
 
 
+def run_extract_https(args: Namespace) -> int:
+    """
+    Extracts and processes HTTPS URLs from a given source file and writes them to a CSV file.
+
+    This function performs several tasks:
+    1. Validates the provided input file path or prompts the user to input it.
+    2. Checks the existence and type of the input path to ensure it is a file.
+    3. Extracts unique HTTPS URLs from the input file.
+    4. Prompts for an output path or uses a timestamped default if not provided.
+    5. Writes the extracted URLs to a specified CSV file.
+    6. Logs the process at various steps.
+
+    Args:
+        args (Namespace): The namespace object containing the following attributes:
+            - input (Optional[Path]): The path to the source file containing URLs.
+            - output (Optional[Path]): The path to the output CSV file for saving extracted URLs.
+
+    Returns:
+        int: Status code. Returns 0 if the operation is successful, 1 otherwise.
+    """
+    input_path = args.input
+    if input_path is None:
+        raw = input("Source file path: ").strip()
+        if not raw:
+            logger.error("No input path provided.")
+            return 1
+        input_path = Path(raw)
+
+    input_path = input_path.expanduser()
+    if not input_path.exists():
+        logger.error(f"File not found: {input_path}")
+        return 1
+    if not input_path.is_file():
+        logger.error(f"Not a file: {input_path}")
+        return 1
+
+    output_path = args.output
+    if output_path is None:
+        default = _timestamped_output("https_urls", ".csv")
+        raw = input(f"Output CSV path (blank for {default}): ").strip()
+        output_path = Path(raw) if raw else default
+
+    output_path = output_path.expanduser()
+    urls = extract_https_urls(input_path)
+    logger.info(f"Found {len(urls)} unique HTTPS URL(s).")
+
+    logger.info(f"Writing CSV to {output_path}...")
+    urls_to_csv(urls, output_path)
+    logger.info("Done.")
+    return 0
+
+
 def _record_to_dict(r: UrlRecord) -> dict[str, Any]:
     """
     Converts a UrlRecord object into a dictionary representation.
@@ -679,6 +752,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_db(args)
     if args.command == "init":
         return run_init(args)
+    if args.command == "extract-https":
+        return run_extract_https(args)
 
     parser.print_help()
     return 1
