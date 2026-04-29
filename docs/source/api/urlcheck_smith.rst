@@ -5,6 +5,7 @@ urlcheck_smith package
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: UrlRecord
 
 Submodules
 ----------
@@ -14,6 +15,7 @@ urlcheck_smith.models
 .. automodule:: urlcheck_smith.models
    :members:
    :show-inheritance:
+   :no-index:
 
 urlcheck_smith.core.check
 -------------------------

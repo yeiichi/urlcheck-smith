@@ -1,7 +1,31 @@
 CLI Reference
 =============
 
-urlcheck-smith provides three main commands.
+urlcheck-smith provides several commands.
+
+extract-https
+-------------
+
+Extract unique HTTPS URLs from a text file and export them to CSV (columns: ``URL``, ``hashed_URL``).
+
+You can run it either as a standalone console script:
+
+.. code-block:: bash
+
+   extract-https --input sample.txt --output https_urls.csv
+
+Or via the main ``urlcheck-smith`` CLI:
+
+.. code-block:: bash
+
+   urlcheck-smith extract-https --input sample.txt --output https_urls.csv
+
+If ``--input`` / ``--output`` are omitted, the command prompts interactively. Leaving the output blank uses a timestamped default like ``https_urls_YYYYMMDD_HHMMSS.csv``.
+
+**Common options:**
+
+- ``-i, --input <file>``: Source text file (optional; prompts if omitted).
+- ``-o, --output <file>``: Output CSV path (optional; prompts if omitted).
 
 scan
 ----

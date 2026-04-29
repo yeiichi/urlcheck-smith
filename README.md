@@ -17,6 +17,7 @@ A compact, fast URL analysis library and pipeline:
 - Optional HTTP checks (status, redirect, CAPTCHA/human-check heuristic)
 - Output results as CSV or JSONL
 - Standalone URL classifier (`classify-url`)
+- Interactive HTTPS URL extractor (`extract-https`) with CSV export (URL + SHA-256 hash)
 - Batch classification mode (`classify`)
 - Database management command (`db`) to enrich or add custom trusted domains
 - Supports custom YAML rules, explain mode, quiet mode
@@ -61,6 +62,26 @@ pytest
 # Usage Guide
 
 `urlcheck-smith` is primarily a **module package**, which also provides a set of CLI utilities for common tasks.
+
+---
+
+## 0. `extract-https` — extract unique HTTPS URLs to CSV
+
+Extract unique HTTPS URLs from a text file and export them to CSV (columns: `URL`, `hashed_URL`).
+
+This command can be run either as a standalone console script:
+
+```bash
+extract-https --input sample.txt --output https_urls.csv
+```
+
+Or via the main `urlcheck-smith` CLI:
+
+```bash
+urlcheck-smith extract-https --input sample.txt --output https_urls.csv
+```
+
+If `--input` / `--output` are omitted, the command will prompt interactively. Leaving the output blank uses a timestamped default filename like `https_urls_YYYYMMDD_HHMMSS.csv`.
 
 ---
 

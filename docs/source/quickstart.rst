@@ -3,6 +3,15 @@ Quickstart
 
 This page gives a short introduction to the most common use cases.
 
+Extract HTTPS URLs (CSV)
+-------------------------
+
+If you only need a clean list of unique HTTPS URLs from a text file, use ``extract-https``:
+
+.. code-block:: bash
+
+   extract-https --input sample.txt --output https_urls.csv
+
 Scan and Classify URLs
 ----------------------
 

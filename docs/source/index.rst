@@ -13,6 +13,7 @@ A compact, fast URL analysis pipeline:
 - Optional HTTP checks (status, redirect, CAPTCHA/human-check heuristic)
 - Output results as CSV or JSONL
 - Standalone URL classifier (``classify-url``)
+- Interactive HTTPS URL extractor (``extract-https``) with CSV export
 - Batch classification mode (``classify``)
 - Database management command (``db``) to enrich or add custom trusted domains
 - Supports custom YAML rules, explain mode, quiet mode

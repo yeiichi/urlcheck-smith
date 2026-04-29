@@ -24,7 +24,7 @@
 
 ### Features
 
-- **cli**: Add extract-https command and CSV export
+- **cli**: Add extract-https command and CSV export (URL + SHA-256 hash)
   ([`6ecac43`](https://github.com/yeiichi/urlcheck-smith/commit/6ecac43a0edfa4ead8ed1ccf2522ee6e1073596d))
 
 

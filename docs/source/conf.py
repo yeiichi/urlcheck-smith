@@ -21,6 +21,14 @@ extensions = [
     "sphinx.ext.viewcode",
 ]
 
+# Allow docs to build even when runtime deps aren't installed (e.g. when Sphinx
+# is invoked from an isolated environment like pipx).
+autodoc_mock_imports = [
+    "yaml",  # PyYAML
+    "requests",
+    "urlextract",
+]
+
 autodoc_default_options = {
     "members": True,
     "undoc-members": False,

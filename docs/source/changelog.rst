@@ -1,5 +1,5 @@
 Changelog
 =========
 
-.. include:: ../../CHANGELOG.rst
-   :start-after: =========
+.. literalinclude:: ../../CHANGELOG.md
+   :language: markdown
