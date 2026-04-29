@@ -35,6 +35,7 @@ Changelog = "https://urlcheck-smith.readthedocs.io/en/latest/changelog.html"
 
 [project.scripts]
 urlcheck-smith = "urlcheck_smith.cli:main"
+extract-https = "urlcheck_smith.cli:extract_https_cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/urlcheck_smith"]

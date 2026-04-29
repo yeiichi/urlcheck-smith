@@ -757,3 +757,15 @@ def main(argv: list[str] | None = None) -> int:
 
     parser.print_help()
     return 1
+
+
+def extract_https_cli() -> int:
+    """
+    Console-script entry point for extracting HTTPS URLs.
+
+    This keeps argument parsing and logging behavior consistent with the
+    `extract-https` subcommand implemented in `main()`.
+    """
+    import sys
+
+    return main(["extract-https", *sys.argv[1:]])
