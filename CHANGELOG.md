@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.8.0 (2026-04-29)
+
+### Chores
+
+- Modify pyproject.toml and up.lock
+  ([`2ecae05`](https://github.com/yeiichi/urlcheck-smith/commit/2ecae05f39e98b73e73f553171d6a0a6ca709a36))
+
+### Features
+
+- Add extract-https console script and expose run_extract_https
+  ([`55b7dec`](https://github.com/yeiichi/urlcheck-smith/commit/55b7dec8d0fb148a4a41b072e6d5455832ca067d))
+
+
 ## v0.7.0 (2026-04-29)
 
 ### Build System
