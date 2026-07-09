@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import re
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from importlib import resources
@@ -11,6 +12,7 @@ from typing import Any, List
 from urllib.parse import urlparse
 
 from . import UrlRecord, SiteClassifier, check_urls, extract_urls_from_paths, stream_extract_from_file
+from .core.crawl import crawl_url_layers
 from .core.extract import extract_https_urls, urls_to_csv
 from .core.update_yaml import add_user_domain, enrich_domain, remove_user_domain, load_db
 
@@ -280,6 +282,53 @@ def build_parser() -> ArgumentParser:
         help="Output CSV path. If omitted, you will be prompted (blank uses a timestamped default).",
     )
 
+    # --- crawl subcommand ---------------------------------------------------
+    crawl = sub.add_parser(
+        "crawl",
+        help="Crawl an HTML URL and save discovered page/document URLs to CSV.",
+    )
+    crawl.add_argument(
+        "src_uri",
+        nargs="?",
+        help="Source URL. If omitted, it is read from stdin.",
+    )
+    crawl.add_argument(
+        "--output-path",
+        type=Path,
+        default=None,
+        help="Output CSV path. Defaults to a source-URL-based filename in the current directory.",
+    )
+    crawl.add_argument(
+        "--max-pages",
+        type=int,
+        default=50,
+        help="Maximum number of pages to fetch, including the source page (default: 50).",
+    )
+    crawl.add_argument(
+        "--depth",
+        type=int,
+        choices=[0, 1, 2],
+        default=1,
+        help="Deepest link layer to collect: 0=source page only, 1=default, 2=broad crawl.",
+    )
+    crawl.add_argument(
+        "--timeout",
+        type=float,
+        default=5.0,
+        help="HTTP timeout per page fetch in seconds (default: 5.0).",
+    )
+    crawl.add_argument(
+        "--request-interval",
+        type=float,
+        default=0.5,
+        help="Seconds to wait between page fetches (default: 0.5).",
+    )
+    crawl.add_argument(
+        "--include-assets",
+        action="store_true",
+        help="Include URLs outside the default page/document target types, such as JavaScript, CSS, images, and fonts.",
+    )
+
     return parser
 
 
@@ -299,6 +348,16 @@ def _timestamped_output(prefix: str, suffix: str) -> Path:
     """
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return Path(f"{prefix}_{stamp}{suffix}")
+
+
+def _crawl_default_output_path(src_uri: str) -> Path:
+    parsed = urlparse(src_uri)
+    source_name = f"{parsed.netloc}{parsed.path}".strip("/")
+    if not source_name:
+        source_name = src_uri
+
+    stem = re.sub(r"[^A-Za-z0-9._-]+", "_", source_name).strip("._-")
+    return Path.cwd() / f"{stem or 'crawl'}.csv"
 
 
 def _init_local_db(target: Path, force: bool = False) -> int:
@@ -625,6 +684,44 @@ def run_extract_https(args: Namespace) -> int:
     return 0
 
 
+def run_crawl(args: Namespace) -> int:
+    """
+    Crawls a source URI to layers 0-2 and writes discovered URLs to CSV.
+
+    Args:
+        args (Namespace): The namespace containing ``src_uri`` and optional
+            ``output_path`` fields from the crawl subcommand.
+
+    Returns:
+        int: Status code. Returns 0 on success and 1 when no source URI is
+            provided.
+    """
+    src_uri = args.src_uri
+    if src_uri is None:
+        src_uri = input("Source URI: ").strip()
+        if not src_uri:
+            logger.error("No source URI provided.")
+            return 1
+
+    output_path = args.output_path or _crawl_default_output_path(src_uri)
+
+    logger.info(f"Crawling {src_uri}...")
+    urls = crawl_url_layers(
+        src_uri,
+        max_pages=args.max_pages,
+        timeout=args.timeout,
+        depth=args.depth,
+        request_interval=args.request_interval,
+        include_assets=args.include_assets,
+    )
+    logger.info(f"Found {len(urls)} URL(s).")
+
+    logger.info(f"Writing CSV to {output_path}...")
+    urls_to_csv(urls, output_path)
+    logger.info("Done.")
+    return 0
+
+
 def _record_to_dict(r: UrlRecord) -> dict[str, Any]:
     """
     Converts a UrlRecord object into a dictionary representation.
@@ -754,6 +851,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_init(args)
     if args.command == "extract-https":
         return run_extract_https(args)
+    if args.command == "crawl":
+        return run_crawl(args)
 
     parser.print_help()
     return 1

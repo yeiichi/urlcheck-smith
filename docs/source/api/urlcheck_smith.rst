@@ -29,6 +29,12 @@ urlcheck_smith.core.classify
    :members:
    :show-inheritance:
 
+urlcheck_smith.core.crawl
+-------------------------
+.. automodule:: urlcheck_smith.core.crawl
+   :members:
+   :show-inheritance:
+
 urlcheck_smith.core.extract
 ---------------------------
 .. automodule:: urlcheck_smith.core.extract

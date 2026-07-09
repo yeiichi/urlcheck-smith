@@ -27,6 +27,27 @@ If ``--input`` / ``--output`` are omitted, the command prompts interactively. Le
 - ``-i, --input <file>``: Source text file (optional; prompts if omitted).
 - ``-o, --output <file>``: Output CSV path (optional; prompts if omitted).
 
+crawl
+-----
+
+Crawl an HTML URL and export discovered page/document URLs to CSV (columns: ``URL``, ``hashed_URL``).
+
+.. code-block:: bash
+
+   urlcheck-smith crawl https://example.com --output-path crawl_urls.csv
+
+If ``src_uri`` is omitted, the command prompts for it on stdin. If ``--output-path`` is omitted, the command writes a source-URL-based ``.csv`` filename in the current directory. Crawling defaults to depth 1 and 50 fetched pages to keep broad sites from expanding too far. The command waits 0.5 seconds between page fetches by default. Default output is limited to HTML-like pages plus PDF, TXT, CSV, DOCX, XLSX, and PPTX URLs.
+
+**Common options:**
+
+- ``src_uri``: Source URL (optional; prompts if omitted).
+- ``--output-path <file>``: Output CSV path.
+- ``--max-pages <n>``: Maximum pages to fetch, including the source page (default: 50).
+- ``--depth <0|1|2>``: Deepest link layer to collect (default: 1).
+- ``--timeout <seconds>``: HTTP timeout per page fetch (default: 5.0).
+- ``--request-interval <seconds>``: Delay between page fetches (default: 0.5).
+- ``--include-assets``: Include URLs outside the default page/document target types, such as JavaScript, CSS, images, and fonts.
+
 scan
 ----
 
