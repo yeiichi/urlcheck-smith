@@ -2,6 +2,30 @@
 
 <!-- version list -->
 
+## v0.9.0 (2026-07-09)
+
+### Chores
+
+- Configure uv and semantic release workflows
+  ([`ec9501c`](https://github.com/yeiichi/urlcheck-smith/commit/ec9501c8819fe09572c1ae79d8eea3c85aec3596))
+
+- Update uv.lock
+  ([`49e1e35`](https://github.com/yeiichi/urlcheck-smith/commit/49e1e3549af31e14f6bd8cb92afc275bfa0148db))
+
+### Documentation
+
+- Update changelog.rst (docs/source/changelog.rst)
+  ([`fb3bbbc`](https://github.com/yeiichi/urlcheck-smith/commit/fb3bbbcc30dc6c707d7c365f82817db69405c9ff))
+
+- Update documentation and changelog
+  ([`82885d0`](https://github.com/yeiichi/urlcheck-smith/commit/82885d0d9cfe77906fcd7deb1fa407fd38f57eb0))
+
+### Features
+
+- Add layered URL crawl API and CLI
+  ([`ef5d146`](https://github.com/yeiichi/urlcheck-smith/commit/ef5d1468073dddb28b75e7e6b675bae36239ea5e))
+
+
 ## v0.8.0 (2026-04-29)
 
 ### Chores
