@@ -1,0 +1,43 @@
+name: Version with Python Semantic Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      no_operation:
+        description: "Run Python Semantic Release without committing, tagging, or publishing"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: semantic-release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Version and tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Python Semantic Release
+        id: release
+        uses: python-semantic-release/python-semantic-release@v10
+        with:
+          build: "false"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          no_operation_mode: ${{ github.event_name == 'workflow_dispatch' && inputs.no_operation == 'true' }}

@@ -1,0 +1,76 @@
+name: Build and publish package
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish to PyPI using the PYPI_API_TOKEN GitHub Secret"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distribution artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --frozen --group dev
+
+      - name: Run tests
+        run: uv run pytest
+
+      - name: Build package
+        run: uv build
+
+      - name: Check package metadata
+        run: uvx twine check dist/*.whl dist/*.tar.gz
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  publish:
+    name: Publish distribution artifacts
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || inputs.publish == 'true'
+    environment:
+      name: pypi
+
+    steps:
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}

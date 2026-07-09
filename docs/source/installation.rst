@@ -15,7 +15,7 @@ Install from source
 
    git clone https://github.com/yeiichi/urlcheck-smith
    cd urlcheck-smith
-   pip install .
+   uv sync
 
 Development install
 -------------------
@@ -24,7 +24,5 @@ If you are developing locally:
 
 .. code-block:: bash
 
-   python3 -m venv .venv
-   . .venv/bin/activate
-   pip install -e .[dev]
-   pytest
+   uv sync --group dev
+   uv run pytest

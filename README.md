@@ -51,10 +51,8 @@ This is available via the `trust_tier` field in CSV/JSONL outputs.
 ## Installation (development)
 
 ```bash
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -e .[dev]
-pytest
+uv sync --group dev
+uv run pytest
 ```
 
 ---

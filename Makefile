@@ -1,8 +1,6 @@
-VENV ?= .venv
-PYTHON := $(VENV)/bin/python
-PIP := $(VENV)/bin/pip
+UV ?= uv
 
-.PHONY: help venv install test clean docs
+.PHONY: help venv install test clean docs release-check release package-build package-publish
 
 help: ## Show this help message
 	@echo "Usage: make [target]"
@@ -13,15 +11,13 @@ help: ## Show this help message
 		| grep -v '^help:' \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-venv: ## create virtualenv in .venv
-	python3 -m venv $(VENV)
+venv: ## create/update the uv-managed .venv
+	$(UV) sync --group dev
 
-install: venv ## install package (editable) + dev deps
-	$(PIP) install -U pip
-	$(PIP) install -e .[dev]
+install: venv ## install package (editable) + dev deps with uv
 
 test: ## run tests (pytest)
-	$(PYTHON) -m pytest
+	$(UV) run pytest
 
 clean: ## Remove build artifacts and Python cache files
 	@echo "Cleaning up..."
@@ -31,5 +27,15 @@ clean: ## Remove build artifacts and Python cache files
 	@echo "Cleanup complete."
 
 docs: ## build sphinx documentation
-	$(PIP) install -r docs/requirements.txt
-	$(MAKE) -C docs html SPHINXBUILD=$(CURDIR)/$(VENV)/bin/sphinx-build
+	$(UV) run sphinx-build -M html docs/source docs/build
+
+release-check: ## preview the next Python Semantic Release version locally
+	$(UV) run semantic-release --noop version
+
+release: ## run Python Semantic Release in GitHub Actions
+	gh workflow run release.yml --ref main -f no_operation=false
+
+package-build: ## run the package build workflow in GitHub Actions
+	gh workflow run pypi.yml --ref main -f publish=false
+
+package-publish: release ## publish via Python Semantic Release tag and GitHub Secrets

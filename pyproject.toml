@@ -43,6 +43,7 @@ packages = ["src/urlcheck_smith"]
 [dependency-groups]
 dev = [
     "furo>=2025.12.19",
+    "python-semantic-release>=10.6.1",
     "pytest>=9.0.3",
     "sphinx>=9.1.0",
 ]
@@ -52,10 +53,13 @@ pythonpath = ["src"]
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
 branch = "main"
+commit_parser = "conventional"
+tag_format = "v{version}"
 upload_to_pypi = false
 upload_to_release = true
 build_command = "uv build"
 allow_zero_version = true
+major_on_zero = false
 
 [tool.semantic_release.changelog.default_templates]
 changelog_file = "CHANGELOG.md"
