@@ -60,6 +60,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || inputs.publish == 'true'
+    permissions:
+      contents: read
+      id-token: write
     environment:
       name: pypi
 
