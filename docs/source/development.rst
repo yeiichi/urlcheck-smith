@@ -42,8 +42,9 @@ Distribution builds are handled by GitHub Actions. The manual build-only path is
 
    make package-build
 
-Publishing is triggered by the Python Semantic Release tag. The PyPI upload is
-handled by GitHub Actions and uses the ``PYPI_API_TOKEN`` GitHub Secret:
+Publishing is triggered after the Python Semantic Release workflow completes.
+The PyPI upload is handled by GitHub Actions using PyPI Trusted Publisher/OIDC;
+no PyPI API token is required:
 
 .. code-block:: bash
 

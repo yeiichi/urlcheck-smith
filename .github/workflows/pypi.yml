@@ -4,16 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: "Publish to PyPI using the PYPI_API_TOKEN GitHub Secret"
+        description: "Publish to PyPI via Trusted Publisher"
         required: true
         default: "false"
         type: choice
         options:
           - "false"
           - "true"
-  push:
-    tags:
-      - "v*"
+  workflow_run:
+    workflows:
+      - "Version with Python Semantic Release"
+    types:
+      - completed
 
 permissions:
   contents: read
@@ -22,34 +24,88 @@ jobs:
   build:
     name: Build distribution artifacts
     runs-on: ubuntu-latest
+    outputs:
+      should_publish: ${{ steps.release.outputs.should_publish }}
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Check release tag
+        id: release
+        shell: bash
+        run: |
+          git fetch --tags --force
+          version="$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")"
+          tag="v${version}"
+          head="$(git rev-parse HEAD)"
+          tag_commit="$(git rev-list -n 1 "${tag}" 2>/dev/null || true)"
+          release_tag_at_head="false"
+          if [[ -n "${tag_commit}" && "${tag_commit}" == "${head}" ]]; then
+            release_tag_at_head="true"
+          fi
+
+          manual_build="${{ github.event_name == 'workflow_dispatch' }}"
+          manual_publish="${{ github.event_name == 'workflow_dispatch' && inputs.publish == 'true' }}"
+          release_workflow_success="${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}"
+
+          should_build="false"
+          if [[ "${manual_build}" == "true" || "${release_tag_at_head}" == "true" ]]; then
+            should_build="true"
+          fi
+
+          should_publish="false"
+          if [[ "${release_tag_at_head}" == "true" && ( "${manual_publish}" == "true" || "${release_workflow_success}" == "true" ) ]]; then
+            should_publish="true"
+          fi
+
+          {
+            echo "version=${version}"
+            echo "tag=${tag}"
+            echo "release_tag_at_head=${release_tag_at_head}"
+            echo "should_build=${should_build}"
+            echo "should_publish=${should_publish}"
+          } >> "${GITHUB_OUTPUT}"
+
+          echo "version=${version}"
+          echo "tag=${tag}"
+          echo "release_tag_at_head=${release_tag_at_head}"
+          echo "should_build=${should_build}"
+          echo "should_publish=${should_publish}"
 
       - name: Install uv
+        if: steps.release.outputs.should_build == 'true'
         uses: astral-sh/setup-uv@v8.3.2
         with:
           enable-cache: true
 
       - name: Set up Python
+        if: steps.release.outputs.should_build == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install dependencies
+        if: steps.release.outputs.should_build == 'true'
         run: uv sync --frozen --group dev
 
       - name: Run tests
+        if: steps.release.outputs.should_build == 'true'
         run: uv run pytest
 
       - name: Build package
+        if: steps.release.outputs.should_build == 'true'
         run: uv build
 
       - name: Check package metadata
+        if: steps.release.outputs.should_build == 'true'
         run: uvx twine check dist/*.whl dist/*.tar.gz
 
       - name: Upload package artifacts
+        if: steps.release.outputs.should_build == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
@@ -59,7 +115,7 @@ jobs:
     name: Publish distribution artifacts
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || inputs.publish == 'true'
+    if: needs.build.outputs.should_publish == 'true'
     permissions:
       contents: read
       id-token: write
@@ -75,5 +131,3 @@ jobs:
 
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}

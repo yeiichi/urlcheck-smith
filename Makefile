@@ -38,4 +38,4 @@ release: ## run Python Semantic Release in GitHub Actions
 package-build: ## run the package build workflow in GitHub Actions
 	gh workflow run pypi.yml --ref main -f publish=false
 
-package-publish: release ## publish via Python Semantic Release tag and GitHub Secrets
+package-publish: release ## publish via Python Semantic Release and PyPI Trusted Publisher
