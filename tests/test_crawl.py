@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from email.message import Message
 
-from urlcheck_smith import crawl_url_layers
+from urlcheck_smith import CrawledURL, crawl_url_layers
 
 
 @dataclass
@@ -50,12 +50,12 @@ def test_crawl_url_layers_returns_layers_0_to_2(monkeypatch) -> None:
     urls = crawl_url_layers("https://example.com", depth=2)
 
     assert urls == [
-        "https://example.com/a",
-        "https://example.com/b",
-        "https://example.com/c",
-        "https://example.com/d",
-        "https://example.com/e",
-        "https://example.com/f",
+        CrawledURL("https://example.com/a", "A"),
+        CrawledURL("https://example.com/b", "B"),
+        CrawledURL("https://example.com/c", "C"),
+        CrawledURL("https://example.com/d", "D"),
+        CrawledURL("https://example.com/e", "E"),
+        CrawledURL("https://example.com/f", "F"),
     ]
 
 
@@ -74,7 +74,9 @@ def test_crawl_url_layers_accepts_missing_content_type(monkeypatch) -> None:
 
     monkeypatch.setattr("urlcheck_smith.core.crawl.urlopen", fake_urlopen)
 
-    assert crawl_url_layers("https://example.com") == ["https://example.com/ok"]
+    assert crawl_url_layers("https://example.com") == [
+        CrawledURL("https://example.com/ok", "OK")
+    ]
 
 
 def test_crawl_url_layers_skips_malformed_url_candidates(monkeypatch) -> None:
@@ -86,7 +88,44 @@ def test_crawl_url_layers_skips_malformed_url_candidates(monkeypatch) -> None:
 
     monkeypatch.setattr("urlcheck_smith.core.crawl.urlopen", fake_urlopen)
 
-    assert crawl_url_layers("https://example.com") == ["https://example.com/ok"]
+    assert crawl_url_layers("https://example.com") == [
+        CrawledURL("https://example.com/ok", "OK")
+    ]
+
+
+def test_crawl_url_layers_uses_none_when_anchor_text_is_unavailable(
+    monkeypatch,
+) -> None:
+    def fake_urlopen(request, timeout):
+        return _FakeResponse(
+            "See https://example.com/plain for details.",
+            request.full_url,
+        )
+
+    monkeypatch.setattr("urlcheck_smith.core.crawl.urlopen", fake_urlopen)
+
+    assert crawl_url_layers("https://example.com") == [
+        CrawledURL("https://example.com/plain", None)
+    ]
+
+
+def test_crawl_url_layers_prefers_available_anchor_text_for_duplicate_url(
+    monkeypatch,
+) -> None:
+    def fake_urlopen(request, timeout):
+        return _FakeResponse(
+            """
+            <form action="/contact"></form>
+            <a href="/contact">Contact <strong>team</strong></a>
+            """,
+            request.full_url,
+        )
+
+    monkeypatch.setattr("urlcheck_smith.core.crawl.urlopen", fake_urlopen)
+
+    assert crawl_url_layers("https://example.com") == [
+        CrawledURL("https://example.com/contact", "Contact team")
+    ]
 
 
 def test_crawl_url_layers_respects_max_pages(monkeypatch) -> None:
@@ -101,14 +140,14 @@ def test_crawl_url_layers_respects_max_pages(monkeypatch) -> None:
 
     monkeypatch.setattr("urlcheck_smith.core.crawl.urlopen", fake_urlopen)
 
-    assert crawl_url_layers("https://example.com", max_pages=2) == [
-        "https://example.com/a",
-        "https://example.com/b",
-        "https://example.com/c",
+    assert crawl_url_layers("https://example.com", max_pages=2, depth=1) == [
+        CrawledURL("https://example.com/a", "A"),
+        CrawledURL("https://example.com/b", "B"),
+        CrawledURL("https://example.com/c", "C"),
     ]
 
 
-def test_crawl_url_layers_defaults_to_depth_1(monkeypatch) -> None:
+def test_crawl_url_layers_defaults_to_depth_0(monkeypatch) -> None:
     pages = {
         "https://example.com": '<a href="/a">A</a>',
         "https://example.com/a": '<a href="/b">B</a>',
@@ -122,8 +161,7 @@ def test_crawl_url_layers_defaults_to_depth_1(monkeypatch) -> None:
     monkeypatch.setattr("urlcheck_smith.core.crawl.urlopen", fake_urlopen)
 
     assert crawl_url_layers("https://example.com") == [
-        "https://example.com/a",
-        "https://example.com/b",
+        CrawledURL("https://example.com/a", "A"),
     ]
 
 
@@ -141,8 +179,8 @@ def test_crawl_url_layers_waits_between_requests(monkeypatch) -> None:
     monkeypatch.setattr("urlcheck_smith.core.crawl.urlopen", fake_urlopen)
     monkeypatch.setattr("urlcheck_smith.core.crawl.time.sleep", sleeps.append)
 
-    assert crawl_url_layers("https://example.com", request_interval=0.25) == [
-        "https://example.com/a",
+    assert crawl_url_layers("https://example.com", request_interval=0.25, depth=1) == [
+        CrawledURL("https://example.com/a", "A"),
     ]
     assert sleeps == [0.25]
 
@@ -161,7 +199,9 @@ def test_crawl_url_layers_skips_static_assets_by_default(monkeypatch) -> None:
 
     monkeypatch.setattr("urlcheck_smith.core.crawl.urlopen", fake_urlopen)
 
-    assert crawl_url_layers("https://example.com") == ["https://example.com/article"]
+    assert crawl_url_layers("https://example.com") == [
+        CrawledURL("https://example.com/article", "Article")
+    ]
 
 
 def test_crawl_url_layers_can_include_static_assets(monkeypatch) -> None:
@@ -179,10 +219,10 @@ def test_crawl_url_layers_can_include_static_assets(monkeypatch) -> None:
     monkeypatch.setattr("urlcheck_smith.core.crawl.urlopen", fake_urlopen)
 
     assert crawl_url_layers("https://example.com", include_assets=True) == [
-        "https://example.com/article",
-        "https://example.com/app.js",
-        "https://example.com/style.css",
-        "https://example.com/image.png",
+        CrawledURL("https://example.com/article", "Article"),
+        CrawledURL("https://example.com/app.js"),
+        CrawledURL("https://example.com/style.css"),
+        CrawledURL("https://example.com/image.png"),
     ]
 
 
@@ -211,13 +251,12 @@ def test_crawl_url_layers_limits_default_targets_to_pages_and_documents(
     monkeypatch.setattr("urlcheck_smith.core.crawl.urlopen", fake_urlopen)
 
     assert crawl_url_layers("https://example.com", max_pages=1) == [
-        "https://example.com/page",
-        "https://example.com/index.html",
-        "https://example.com/report.pdf",
-        "https://example.com/notes.txt",
-        "https://example.com/data.csv",
-        "https://example.com/brief.docx",
-        "https://example.com/sheet.xlsx",
-        "https://example.com/legacy.xlxs",
-        "https://example.com/deck.pptx",
+        CrawledURL("https://example.com/page", "Page"),
+        CrawledURL("https://example.com/index.html", "HTML"),
+        CrawledURL("https://example.com/report.pdf", "PDF"),
+        CrawledURL("https://example.com/notes.txt", "TXT"),
+        CrawledURL("https://example.com/data.csv", "CSV"),
+        CrawledURL("https://example.com/brief.docx", "DOCX"),
+        CrawledURL("https://example.com/sheet.xlsx", "XLSX"),
+        CrawledURL("https://example.com/deck.pptx", "PPTX"),
     ]

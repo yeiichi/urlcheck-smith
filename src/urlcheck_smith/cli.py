@@ -12,8 +12,8 @@ from typing import Any, List
 from urllib.parse import urlparse
 
 from . import UrlRecord, SiteClassifier, check_urls, extract_urls_from_paths, stream_extract_from_file
-from .core.crawl import crawl_url_layers
-from .core.extract import extract_https_urls, urls_to_csv
+from .core.crawl import CrawledURL, crawl_url_layers
+from .core.extract import extract_https_urls, sha256_hex, urls_to_csv
 from .core.update_yaml import add_user_domain, enrich_domain, remove_user_domain, load_db
 
 logger = logging.getLogger(__name__)
@@ -308,8 +308,8 @@ def build_parser() -> ArgumentParser:
         "--depth",
         type=int,
         choices=[0, 1, 2],
-        default=1,
-        help="Deepest link layer to collect: 0=source page only, 1=default, 2=broad crawl.",
+        default=0,
+        help="Deepest link layer to collect: 0=default source page only, 1=linked pages, 2=broad crawl.",
     )
     crawl.add_argument(
         "--timeout",
@@ -717,9 +717,19 @@ def run_crawl(args: Namespace) -> int:
     logger.info(f"Found {len(urls)} URL(s).")
 
     logger.info(f"Writing CSV to {output_path}...")
-    urls_to_csv(urls, output_path)
+    crawled_urls_to_csv(urls, output_path)
     logger.info("Done.")
     return 0
+
+
+def crawled_urls_to_csv(urls: list[CrawledURL], output_path: Path) -> None:
+    with output_path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["URL", "anchor_text", "hashed_URL"])
+        for result in urls:
+            writer.writerow(
+                [result.url, result.anchor_text or "", sha256_hex(result.url)]
+            )
 
 
 def _record_to_dict(r: UrlRecord) -> dict[str, Any]:

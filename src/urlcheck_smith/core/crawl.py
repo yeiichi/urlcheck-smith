@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import time
+from dataclasses import dataclass
 from html.parser import HTMLParser
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlparse
@@ -14,7 +15,7 @@ _PAGE_URL_ATTRS = {"href", "action"}
 _ASSET_URL_ATTRS = {"src", "poster", "data"}
 _DEFAULT_TIMEOUT = 5.0
 _DEFAULT_MAX_PAGES = 100
-_DEFAULT_DEPTH = 1
+_DEFAULT_DEPTH = 0
 _DEFAULT_REQUEST_INTERVAL = 0.0
 _DEFAULT_USER_AGENT = "UrlCheckSmith/0.8.0"
 _HTML_TARGET_EXTENSIONS = {"", ".html", ".htm"}
@@ -28,7 +29,6 @@ _DOCUMENT_TARGET_EXTENSIONS = {
     ".pptx",
     ".txt",
     ".xlsx",
-    ".xlxs",
 }
 _STATIC_ASSET_EXTENSIONS = {
     ".avif",
@@ -55,14 +55,38 @@ _STATIC_ASSET_EXTENSIONS = {
 }
 
 
+@dataclass(frozen=True)
+class CrawledURL:
+    url: str
+    anchor_text: str | None = None
+
+
+@dataclass
+class _URLCandidate:
+    url: str
+    anchor_text: str | None = None
+
+
+@dataclass
+class _OpenAnchor:
+    href: str
+    text_parts: list[str]
+
+
 class _HTMLURLParser(HTMLParser):
     def __init__(self, *, include_assets: bool) -> None:
         super().__init__(convert_charrefs=True)
         self.include_assets = include_assets
-        self.urls: list[str] = []
+        self.urls: list[_URLCandidate] = []
+        self._anchor_stack: list[_OpenAnchor] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        self._collect_attrs(attrs)
+        attr_map = {name.lower(): value for name, value in attrs if value is not None}
+        if tag.lower() == "a" and attr_map.get("href"):
+            self._anchor_stack.append(_OpenAnchor(attr_map["href"] or "", []))
+            self._collect_attrs(attrs, skip_anchor_href=True)
+        else:
+            self._collect_attrs(attrs)
 
     def handle_startendtag(
         self,
@@ -72,19 +96,41 @@ class _HTMLURLParser(HTMLParser):
         self._collect_attrs(attrs)
 
     def handle_data(self, data: str) -> None:
-        self.urls.extend(_ABSOLUTE_URL_RE.findall(data))
+        if self._anchor_stack:
+            self._anchor_stack[-1].text_parts.append(data)
+        self.urls.extend(_URLCandidate(url) for url in _ABSOLUTE_URL_RE.findall(data))
 
-    def _collect_attrs(self, attrs: list[tuple[str, str | None]]) -> None:
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() != "a" or not self._anchor_stack:
+            return
+
+        anchor = self._anchor_stack.pop()
+        text = _normalize_anchor_text("".join(anchor.text_parts))
+        self.urls.append(_URLCandidate(anchor.href, text))
+
+    def _collect_attrs(
+        self,
+        attrs: list[tuple[str, str | None]],
+        *,
+        skip_anchor_href: bool = False,
+    ) -> None:
         for name, value in attrs:
             if value is None:
                 continue
             attr_name = name.lower()
+            if skip_anchor_href and attr_name == "href":
+                continue
             if attr_name in _PAGE_URL_ATTRS or (
                 self.include_assets and attr_name in _ASSET_URL_ATTRS
             ):
-                self.urls.append(value)
+                self.urls.append(_URLCandidate(value))
             elif self.include_assets and attr_name == "srcset":
-                self.urls.extend(_extract_srcset_urls(value))
+                self.urls.extend(_URLCandidate(url) for url in _extract_srcset_urls(value))
+
+
+def _normalize_anchor_text(value: str) -> str | None:
+    text = " ".join(value.split())
+    return text or None
 
 
 def _extract_srcset_urls(value: str) -> list[str]:
@@ -145,15 +191,16 @@ def _extract_urls_from_html(
     base_uri: str,
     *,
     include_assets: bool,
-) -> list[str]:
+) -> list[CrawledURL]:
     parser = _HTMLURLParser(include_assets=include_assets)
     parser.feed(html)
+    parser.close()
 
-    urls: list[str] = []
-    seen: set[str] = set()
-    for raw_url in parser.urls:
+    urls: list[CrawledURL] = []
+    seen: dict[str, int] = {}
+    for candidate in parser.urls:
         try:
-            resolved = urljoin(base_uri, raw_url.strip())
+            resolved = urljoin(base_uri, candidate.url.strip())
             if not _is_http_url(resolved):
                 continue
             normalized = normalize_url(resolved)
@@ -166,8 +213,10 @@ def _extract_urls_from_html(
             continue
 
         if normalized not in seen:
-            seen.add(normalized)
-            urls.append(normalized)
+            seen[normalized] = len(urls)
+            urls.append(CrawledURL(normalized, candidate.anchor_text))
+        elif urls[seen[normalized]].anchor_text is None and candidate.anchor_text:
+            urls[seen[normalized]] = CrawledURL(normalized, candidate.anchor_text)
     return urls
 
 
@@ -179,7 +228,7 @@ def crawl_url_layers(
     depth: int = _DEFAULT_DEPTH,
     request_interval: float = _DEFAULT_REQUEST_INTERVAL,
     include_assets: bool = False,
-) -> list[str]:
+) -> list[CrawledURL]:
     """
     Crawl a source HTML page to a fixed depth and return discovered URLs.
 
@@ -193,8 +242,8 @@ def crawl_url_layers(
     PPTX URLs. Static asset URLs and other file types are skipped unless
     ``include_assets`` is true.
     """
-    all_urls: list[str] = []
-    all_seen: set[str] = set()
+    all_urls: list[CrawledURL] = []
+    all_seen: dict[str, int] = {}
     current_inputs = [src_uri]
     fetched_count = 0
 
@@ -214,14 +263,20 @@ def crawl_url_layers(
                 continue
 
             html, final_url = fetched
-            for url in _extract_urls_from_html(
+            for result in _extract_urls_from_html(
                 html,
                 final_url,
                 include_assets=include_assets,
             ):
+                url = result.url
                 if url not in all_seen:
-                    all_seen.add(url)
-                    all_urls.append(url)
+                    all_seen[url] = len(all_urls)
+                    all_urls.append(result)
+                elif (
+                    all_urls[all_seen[url]].anchor_text is None
+                    and result.anchor_text is not None
+                ):
+                    all_urls[all_seen[url]] = result
                 if _is_crawlable_html_url(url) and url not in next_seen:
                     next_seen.add(url)
                     next_inputs.append(url)

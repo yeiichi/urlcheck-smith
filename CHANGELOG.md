@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## Unreleased
+
+### Features
+
+- Add anchor text to crawl results and crawl CSV output.
+
+### Changes
+
+- Change crawl depth defaults from 1 to 0 for both the CLI and core crawler.
+- Exclude the misspelled `.xlxs` extension from default crawl document targets.
+
+
 ## v0.9.0 (2026-07-09)
 
 ### Chores

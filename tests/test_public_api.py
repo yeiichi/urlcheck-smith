@@ -9,7 +9,11 @@ def test_run_extract_https_is_exposed() -> None:
 
 
 def test_crawl_url_layers_is_exposed() -> None:
-    from urlcheck_smith import crawl_url_layers
-    from urlcheck_smith.core.crawl import crawl_url_layers as core_crawl_url_layers
+    from urlcheck_smith import CrawledURL, crawl_url_layers
+    from urlcheck_smith.core.crawl import (
+        CrawledURL as core_crawled_url,
+        crawl_url_layers as core_crawl_url_layers,
+    )
 
     assert crawl_url_layers is core_crawl_url_layers
+    assert CrawledURL is core_crawled_url
