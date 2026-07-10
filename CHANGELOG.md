@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.10.0 (2026-07-10)
+
+### Continuous Integration
+
+- Allow trusted PyPI publishing
+  ([`ad279bf`](https://github.com/yeiichi/urlcheck-smith/commit/ad279bf354a39017e4aa82b6c3fc3778e79c261c))
+
+- Pin setup-uv action version
+  ([`65477fd`](https://github.com/yeiichi/urlcheck-smith/commit/65477fde7d7da3a6c684edb2cfcd695bfc9eb4bf))
+
+### Features
+
+- Include crawl anchor text
+  ([`7759ca3`](https://github.com/yeiichi/urlcheck-smith/commit/7759ca3954bcbfdaa1adddbf3216531d64d21b7a))
+
+
 ## Unreleased
 
 ### Features
