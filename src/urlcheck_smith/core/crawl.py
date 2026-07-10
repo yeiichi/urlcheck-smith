@@ -18,6 +18,14 @@ _DEFAULT_MAX_PAGES = 100
 _DEFAULT_DEPTH = 0
 _DEFAULT_REQUEST_INTERVAL = 0.0
 _DEFAULT_USER_AGENT = "UrlCheckSmith/0.8.0"
+_META_CHARSET_RE = re.compile(
+    rb"<meta\s+[^>]*charset\s*=\s*['\"]?\s*([A-Za-z0-9._:-]+)",
+    re.IGNORECASE,
+)
+_META_CONTENT_CHARSET_RE = re.compile(
+    rb"<meta\s+[^>]*content\s*=\s*['\"][^'\"]*charset\s*=\s*([A-Za-z0-9._:-]+)",
+    re.IGNORECASE,
+)
 _HTML_TARGET_EXTENSIONS = {"", ".html", ".htm"}
 _DOCUMENT_TARGET_EXTENSIONS = {
     "",
@@ -169,6 +177,59 @@ def _is_crawlable_html_url(url: str) -> bool:
     return _url_extension(url) in _HTML_TARGET_EXTENSIONS
 
 
+def _declared_html_charset(raw: bytes) -> str | None:
+    head = raw[:4096]
+    match = _META_CHARSET_RE.search(head) or _META_CONTENT_CHARSET_RE.search(head)
+    if match is None:
+        return None
+    try:
+        return match.group(1).decode("ascii")
+    except UnicodeDecodeError:
+        return None
+
+
+def _candidate_charsets(raw: bytes, header_charset: str | None) -> list[str]:
+    candidates: list[str] = []
+    seen: set[str] = set()
+
+    def add_charset(charset: str | None) -> None:
+        if charset is None:
+            return
+        normalized = charset.lower()
+        if normalized not in seen:
+            candidates.append(charset)
+            seen.add(normalized)
+
+    if raw.startswith(b"\xef\xbb\xbf"):
+        add_charset("utf-8-sig")
+    elif raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        add_charset("utf-16")
+
+    meta_charset = _declared_html_charset(raw)
+    for charset in (
+        meta_charset,
+        header_charset,
+        "utf-8",
+        "cp932",
+        "shift_jis",
+        "euc_jp",
+    ):
+        add_charset(charset)
+    return candidates
+
+
+def _decode_html(raw: bytes, header_charset: str | None) -> str:
+    candidates = _candidate_charsets(raw, header_charset)
+    for charset in candidates:
+        try:
+            return raw.decode(charset)
+        except (LookupError, UnicodeDecodeError):
+            continue
+
+    fallback = candidates[0] if candidates else "utf-8"
+    return raw.decode(fallback, errors="replace")
+
+
 def _fetch_html(src_uri: str, timeout: float) -> tuple[str, str] | None:
     request = Request(src_uri, headers={"User-Agent": _DEFAULT_USER_AGENT})
     try:
@@ -178,8 +239,7 @@ def _fetch_html(src_uri: str, timeout: float) -> tuple[str, str] | None:
                 return None
 
             raw = response.read()
-            charset = response.headers.get_content_charset() or "utf-8"
-            html = raw.decode(charset, errors="replace")
+            html = _decode_html(raw, response.headers.get_content_charset())
             final_url = response.geturl() or src_uri
             return html, final_url
     except (HTTPError, URLError, TimeoutError, OSError, UnicodeError):

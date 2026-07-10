@@ -8,7 +8,7 @@ from urlcheck_smith import CrawledURL, crawl_url_layers
 
 @dataclass
 class _FakeResponse:
-    body: str
+    body: str | bytes
     url: str
     content_type: str = "text/html; charset=utf-8"
 
@@ -23,6 +23,8 @@ class _FakeResponse:
         return None
 
     def read(self) -> bytes:
+        if isinstance(self.body, bytes):
+            return self.body
         return self.body.encode("utf-8")
 
     def geturl(self) -> str:
@@ -76,6 +78,51 @@ def test_crawl_url_layers_accepts_missing_content_type(monkeypatch) -> None:
 
     assert crawl_url_layers("https://example.com") == [
         CrawledURL("https://example.com/ok", "OK")
+    ]
+
+
+def test_crawl_url_layers_decodes_anchor_text_from_html_meta_charset(
+    monkeypatch,
+) -> None:
+    body = (
+        '<html><head><meta charset="Shift_JIS"></head>'
+        '<body><a href="/jp">日本語リンク</a></body></html>'
+    ).encode("shift_jis")
+
+    def fake_urlopen(request, timeout):
+        return _FakeResponse(
+            body,
+            request.full_url,
+            content_type="text/html",
+        )
+
+    monkeypatch.setattr("urlcheck_smith.core.crawl.urlopen", fake_urlopen)
+
+    assert crawl_url_layers("https://example.com") == [
+        CrawledURL("https://example.com/jp", "日本語リンク")
+    ]
+
+
+def test_crawl_url_layers_prefers_html_meta_charset_for_anchor_text(
+    monkeypatch,
+) -> None:
+    body = (
+        '<html><head><meta http-equiv="Content-Type" '
+        'content="text/html; charset=Shift_JIS"></head>'
+        '<body><a href="/jp">日本語リンク</a></body></html>'
+    ).encode("shift_jis")
+
+    def fake_urlopen(request, timeout):
+        return _FakeResponse(
+            body,
+            request.full_url,
+            content_type="text/html; charset=utf-8",
+        )
+
+    monkeypatch.setattr("urlcheck_smith.core.crawl.urlopen", fake_urlopen)
+
+    assert crawl_url_layers("https://example.com") == [
+        CrawledURL("https://example.com/jp", "日本語リンク")
     ]
 
 
