@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.10.1 (2026-07-10)
+
+### Bug Fixes
+
+- Preserve crawl anchor text encoding
+  ([`d7ba2f4`](https://github.com/yeiichi/urlcheck-smith/commit/d7ba2f4094a60dad2fe7e10523c80e2e40840659))
+
+### Continuous Integration
+
+- Publish after semantic release workflow
+  ([`d9b5ab3`](https://github.com/yeiichi/urlcheck-smith/commit/d9b5ab3fcc5166be377d5c0da7b36ba2477a64be))
+
+
 ## v0.10.0 (2026-07-10)
 
 ### Continuous Integration
