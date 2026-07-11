@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.10.3 (2026-07-11)
+
+### Bug Fixes
+
+- Refresh lockfile during release builds
+  ([`44b3cb2`](https://github.com/yeiichi/urlcheck-smith/commit/44b3cb287586f88b9cfc24727b411db6bf666b52))
+
+
 ## v0.10.2 (2026-07-11)
 
 ### Bug Fixes
