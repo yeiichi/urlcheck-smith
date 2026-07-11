@@ -88,13 +88,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Refresh lockfile for release version
+        if: steps.release.outputs.should_build == 'true'
+        run: uv lock
+
       - name: Install dependencies
         if: steps.release.outputs.should_build == 'true'
         run: uv sync --frozen --group dev
 
       - name: Run tests
         if: steps.release.outputs.should_build == 'true'
-        run: uv run pytest
+        run: uv run --frozen pytest
 
       - name: Build package
         if: steps.release.outputs.should_build == 'true'
