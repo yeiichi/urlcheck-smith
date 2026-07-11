@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v0.10.2 (2026-07-11)
+
+### Bug Fixes
+
+- Release urllib runtime dependency change
+  ([`287dd30`](https://github.com/yeiichi/urlcheck-smith/commit/287dd30940733ec4d51042bab31a45d60f5f4c40))
+
+### Refactoring
+
+- Replace requests with urllib
+  ([`a8270eb`](https://github.com/yeiichi/urlcheck-smith/commit/a8270ebdbb88493e750231a530aca1f49bf40b04))
+
+
 ## v0.10.1 (2026-07-10)
 
 ### Bug Fixes
