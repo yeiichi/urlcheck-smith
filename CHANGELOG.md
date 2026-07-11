@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.10.4 (2026-07-11)
+
+### Bug Fixes
+
+- Make soft 404 tests self-contained
+  ([`3a6b22d`](https://github.com/yeiichi/urlcheck-smith/commit/3a6b22d1103dff9ceaa5554f960b17086c69e29f))
+
+
 ## v0.10.3 (2026-07-11)
 
 ### Bug Fixes
