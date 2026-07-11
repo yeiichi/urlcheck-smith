@@ -1,6 +1,7 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from urlcheck_smith import UrlRecord, check_urls
 from urlcheck_smith.core.check import _is_soft_404
+from tests.test_check import _FakeResponse
 
 def test_is_soft_404_logic():
     """Test the internal helper with various snippets."""
@@ -13,42 +14,39 @@ def test_is_soft_404_logic():
     assert _is_soft_404("Welcome to our homepage!") is False
     assert _is_soft_404("") is False
 
-@patch("requests.get")
-def test_check_urls_detects_soft_404(mock_get):
+@patch("urlcheck_smith.core.check.urlopen")
+def test_check_urls_detects_soft_404(mock_urlopen):
     """Test that check_urls flags a 200 OK response containing 404 markers."""
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.url = "https://example.com/broken"
-    mock_resp.text = "<html><body><h1>404 - File Not Found</h1></body></html>"
-    mock_get.return_value = mock_resp
+    mock_urlopen.return_value = _FakeResponse(
+        "<html><body><h1>404 - File Not Found</h1></body></html>",
+        "https://example.com/broken",
+    )
 
     records = [UrlRecord(url="https://example.com/broken")]
     results = check_urls(records)
 
     assert results[0].soft_404_detected is True
 
-@patch("requests.get")
-def test_check_urls_detects_soft_404_japanese(mock_get):
+@patch("urlcheck_smith.core.check.urlopen")
+def test_check_urls_detects_soft_404_japanese(mock_urlopen):
     """Test that check_urls flags a Japanese soft 404 page."""
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.url = "https://example.jp/missing"
-    mock_resp.text = "<html><body><h1>404 お探しのページは見つかりませんでした。</h1></body></html>"
-    mock_get.return_value = mock_resp
+    mock_urlopen.return_value = _FakeResponse(
+        "<html><body><h1>404 お探しのページは見つかりませんでした。</h1></body></html>",
+        "https://example.jp/missing",
+    )
 
     records = [UrlRecord(url="https://example.jp/missing")]
     results = check_urls(records)
 
     assert results[0].soft_404_detected is True
 
-@patch("requests.get")
-def test_check_urls_normal_page(mock_get):
+@patch("urlcheck_smith.core.check.urlopen")
+def test_check_urls_normal_page(mock_urlopen):
     """Test that a normal 200 OK page is not flagged."""
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.url = "https://example.com/ok"
-    mock_resp.text = "Welcome to the site!"
-    mock_get.return_value = mock_resp
+    mock_urlopen.return_value = _FakeResponse(
+        "Welcome to the site!",
+        "https://example.com/ok",
+    )
 
     records = [UrlRecord(url="https://example.com/ok")]
     results = check_urls(records)

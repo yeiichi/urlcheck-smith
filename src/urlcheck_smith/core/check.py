@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import dataclasses
 from typing import Iterable, List, Optional, Tuple
-
-import requests
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from ..models import UrlRecord
 from .user_agent import get_default_user_agent
@@ -75,16 +75,22 @@ def _fetch_http_result(
     timeout: float,
     headers: dict[str, str],
 ) -> Tuple[int, str, str]:
-    resp = requests.get(
-        url,
-        timeout=timeout,
-        allow_redirects=True,
-        headers=headers,
-    )
-    status = resp.status_code
-    final_url = resp.url
-    snippet = resp.text[:2000] if isinstance(resp.text, str) else ""
+    request = Request(url, headers=headers)
+    try:
+        with urlopen(request, timeout=timeout) as resp:
+            status = resp.status
+            final_url = resp.geturl() or url
+            snippet = _decode_body(resp.read(), resp.headers)[:2000]
+    except HTTPError as exc:
+        status = exc.code
+        final_url = exc.geturl() or url
+        snippet = _decode_body(exc.read(), exc.headers)[:2000]
     return status, final_url, snippet
+
+
+def _decode_body(raw: bytes, headers) -> str:
+    charset = headers.get_content_charset() if headers is not None else None
+    return raw.decode(charset or "utf-8", errors="replace")
 
 
 def _build_checked_record(
@@ -142,7 +148,7 @@ def check_urls(
                 headers=headers,
             )
             new_rec = _build_checked_record(rec, status, final_url, snippet)
-        except requests.exceptions.RequestException as exc:
+        except (URLError, TimeoutError, OSError, ValueError) as exc:
             new_rec = dataclasses.replace(
                 rec,
                 http_status=None,

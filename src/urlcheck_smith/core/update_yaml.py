@@ -1,10 +1,12 @@
+import json
 import logging
 import os
 from datetime import datetime
 from importlib import resources
 from pathlib import Path
+from urllib.parse import urlencode
+from urllib.request import urlopen
 
-import requests
 import yaml
 
 # --- CONFIGURATION ---
@@ -236,8 +238,9 @@ def check_google_fact_check(domain):
         return None
     params = {"query": f"site:{domain}", "key": api_key}
     try:
-        response = requests.get(API_URL, params=params)
-        data = response.json()
+        url = f"{API_URL}?{urlencode(params)}"
+        with urlopen(url) as response:
+            data = json.loads(response.read().decode("utf-8"))
         claims = data.get("claims", [])
         negative_flags = 0
         neg_terms = {"false", "misleading", "incorrect", "fake", "pants on fire", "distorted", "conspiracy"}

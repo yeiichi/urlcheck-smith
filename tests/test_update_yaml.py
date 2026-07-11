@@ -1,4 +1,5 @@
 import importlib
+import json
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -27,18 +28,18 @@ def test_check_google_fact_check_returns_none_without_api_key(update_yaml_module
     assert update_yaml_module.check_google_fact_check("example.com") is None
 
 
-@patch("urlcheck_smith.core.update_yaml.requests.get")
-def test_check_google_fact_check_counts_negative_reviews(mock_get, update_yaml_module):
+@patch("urlcheck_smith.core.update_yaml.urlopen")
+def test_check_google_fact_check_counts_negative_reviews(mock_urlopen, update_yaml_module):
     """Test that negative review labels are counted."""
     mock_resp = MagicMock()
-    mock_resp.json.return_value = {
+    mock_resp.__enter__.return_value.read.return_value = json.dumps({
         "claims": [
             {"claimReview": [{"textualRating": "False"}]},
             {"claimReview": [{"textualRating": "Mostly false"}]},
             {"claimReview": [{"textualRating": "True"}]},
         ]
-    }
-    mock_get.return_value = mock_resp
+    }).encode("utf-8")
+    mock_urlopen.return_value = mock_resp
 
     count = update_yaml_module.check_google_fact_check("example.com")
 

@@ -25,7 +25,6 @@ extensions = [
 # is invoked from an isolated environment like pipx).
 autodoc_mock_imports = [
     "yaml",  # PyYAML
-    "requests",
     "urlextract",
 ]
 
